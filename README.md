@@ -12,8 +12,8 @@ billing system — fast, reliable, and **safe against data loss**.
 | Phase | Description | State |
 |------:|-------------|-------|
 | 1 | Architecture + project scaffold, theme, DI, app shell | ✅ Done |
-| 2 | Database (Drift local + Supabase cloud schema, migrations) | ⏳ Next |
-| 3 | Authentication, PIN login, RBAC | ⬜ |
+| 2 | Database (Drift local + Supabase cloud schema, migrations) | ✅ Done |
+| 3 | Authentication, PIN login, RBAC | ⏳ Next |
 | 4 | Products | ⬜ |
 | 5 | Billing | ⬜ |
 | 6 | Printing (ESC/POS thermal) | ⬜ |
@@ -27,8 +27,8 @@ billing system — fast, reliable, and **safe against data loss**.
 - **Flutter** (Dart) — single codebase, native-feeling touch UI
 - **Riverpod** — state management & dependency injection
 - **go_router** — navigation (indexed stateful shell)
-- **Drift / SQLite** — local offline-first database *(Phase 2)*
-- **Supabase (Postgres)** — cloud backend, auth, backups *(Phase 8)*
+- **Drift / SQLite** — local offline-first database
+- **Supabase (Postgres)** — cloud backend, auth, backups *(sync in Phase 8)*
 - **ESC/POS** — Bluetooth/Wi-Fi thermal receipt printing *(Phase 6)*
 
 ## Project structure
@@ -36,12 +36,25 @@ billing system — fast, reliable, and **safe against data loss**.
 ```
 lib/
   app/        # MaterialApp, router, responsive shell, nav destinations
-  core/       # config, theme, error/Result, logging, money & date utils
+  core/       # config, theme, error/Result, logging, money & date utils, enums
+  data/
+    local/    # Drift database, tables, DAOs (on-device source of truth)
   features/   # billing, products, inventory, customers, reports, settings
               #   each: presentation/ domain/ data/
   shared/     # reusable widgets (logo, sync chip, placeholders)
   main.dart
-test/         # unit + widget tests mirroring lib/
+supabase/
+  migrations/ # cloud Postgres schema + Row-Level Security
+test/         # unit + widget + database tests mirroring lib/
+```
+
+### Code generation
+
+Drift generates `*.g.dart` files. **These are committed** so a fresh clone
+builds and tests without a codegen step. If you change any table/DAO, regenerate:
+
+```bash
+dart run build_runner build --delete-conflicting-outputs
 ```
 
 Money is stored everywhere as **integer paise** (never `double`) to avoid rounding errors — see

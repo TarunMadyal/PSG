@@ -9,9 +9,9 @@ build/
 # Note: pubspec.lock IS committed — this is an application, so we want
 # reproducible dependency resolution across machines and CI.
 
-# Generated code
-*.g.dart
-*.freezed.dart
+# Generated code: we DO commit Drift/build_runner output (*.g.dart) so a fresh
+# clone builds and tests without first running code generation. Only mock files
+# are regenerated per-run.
 *.mocks.dart
 
 # IDE
