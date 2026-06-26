@@ -1,22 +1,27 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'products_dao.dart';
+part of 'inventory_dao.dart';
 
 // ignore_for_file: type=lint
-mixin _$ProductsDaoMixin on DatabaseAccessor<AppDatabase> {
+mixin _$InventoryDaoMixin on DatabaseAccessor<AppDatabase> {
   $ProductsTable get products => attachedDatabase.products;
   $InventoryTable get inventory => attachedDatabase.inventory;
+  $InventoryMovementsTable get inventoryMovements =>
+      attachedDatabase.inventoryMovements;
   $OutboxTable get outbox => attachedDatabase.outbox;
-  ProductsDaoManager get managers => ProductsDaoManager(this);
+  InventoryDaoManager get managers => InventoryDaoManager(this);
 }
 
-class ProductsDaoManager {
-  final _$ProductsDaoMixin _db;
-  ProductsDaoManager(this._db);
+class InventoryDaoManager {
+  final _$InventoryDaoMixin _db;
+  InventoryDaoManager(this._db);
   $$ProductsTableTableManager get products =>
       $$ProductsTableTableManager(_db.attachedDatabase, _db.products);
   $$InventoryTableTableManager get inventory =>
       $$InventoryTableTableManager(_db.attachedDatabase, _db.inventory);
+  $$InventoryMovementsTableTableManager get inventoryMovements =>
+      $$InventoryMovementsTableTableManager(
+          _db.attachedDatabase, _db.inventoryMovements);
   $$OutboxTableTableManager get outbox =>
       $$OutboxTableTableManager(_db.attachedDatabase, _db.outbox);
 }

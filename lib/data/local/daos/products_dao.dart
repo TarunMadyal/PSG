@@ -8,13 +8,41 @@ import '../tables/tables.dart';
 
 part 'products_dao.g.dart';
 
+/// A catalog row: a product joined with its current stock level.
+typedef CatalogRow = ({Product product, int stock, int reorderLevel});
+
 /// Data access for [Products], including the offline-first write pattern:
 /// every save atomically persists the product **and** enqueues a sync outbox
 /// entry in a single transaction.
-@DriftAccessor(tables: [Products, Outbox])
+@DriftAccessor(tables: [Products, Inventory, Outbox])
 class ProductsDao extends DatabaseAccessor<AppDatabase>
     with _$ProductsDaoMixin {
   ProductsDao(super.db);
+
+  /// Live catalog: active products left-joined with their stock, name-sorted.
+  Stream<List<CatalogRow>> watchCatalog() {
+    final query = select(products).join([
+      leftOuterJoin(
+        inventory,
+        inventory.productId.equalsExp(products.id) &
+            inventory.isDeleted.equals(false),
+      ),
+    ])
+      ..where(products.isDeleted.equals(false) & products.isActive.equals(true))
+      ..orderBy([OrderingTerm.asc(products.name)]);
+
+    return query.watch().map(
+          (rows) => rows.map((r) {
+            final p = r.readTable(products);
+            final inv = r.readTableOrNull(inventory);
+            return (
+              product: p,
+              stock: inv?.qtyOnHand ?? 0,
+              reorderLevel: inv?.reorderLevel ?? 0,
+            );
+          }).toList(),
+        );
+  }
 
   /// Active (non-deleted, in-stock-eligible) products, name-sorted, as a live
   /// stream so the UI updates instantly on any change.
@@ -58,7 +86,8 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
   ///
   /// On update, [updatedAt] is refreshed and [version] bumped so delta sync and
   /// conflict resolution work correctly.
-  Future<void> save(ProductsCompanion product) {
+  /// Returns the persisted row (with generated id/defaults).
+  Future<Product> save(ProductsCompanion product) {
     return transaction(() async {
       final existing = product.id.present
           ? await getById(product.id.value)
@@ -71,8 +100,8 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
               version: Value(existing.version + 1),
             );
 
-      final written =
-          await into(products).insertReturning(toWrite, mode: InsertMode.insertOrReplace);
+      final written = await into(products)
+          .insertReturning(toWrite, mode: InsertMode.insertOrReplace);
 
       await into(outbox).insert(
         OutboxCompanion.insert(
@@ -82,6 +111,8 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
           payload: Value(jsonEncode(written.toJson())),
         ),
       );
+
+      return written;
     });
   }
 

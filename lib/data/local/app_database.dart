@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/enums.dart';
+import 'daos/inventory_dao.dart';
 import 'daos/outbox_dao.dart';
 import 'daos/products_dao.dart';
 import 'daos/users_dao.dart';
@@ -29,7 +30,7 @@ part 'app_database.g.dart';
     Outbox,
     SyncState,
   ],
-  daos: [ProductsDao, OutboxDao, UsersDao],
+  daos: [ProductsDao, OutboxDao, UsersDao, InventoryDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
