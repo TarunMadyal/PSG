@@ -1,0 +1,40 @@
+name: psg_pos
+description: "PSG Padmashree Garments — offline-first POS & billing system."
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management (compile-safe, testable, great for async/offline state)
+  flutter_riverpod: ^2.5.1
+
+  # Navigation
+  go_router: ^14.2.0
+
+  # Formatting (money, dates) and ids
+  intl: ^0.19.0
+  uuid: ^4.4.0
+
+  # Structured logging
+  logger: ^2.4.0
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  # Assets (logo, fonts) will be wired up in later phases:
+  # assets:
+  #   - assets/images/
