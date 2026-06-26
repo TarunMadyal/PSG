@@ -24,6 +24,9 @@ dependencies:
   # Structured logging
   logger: ^2.4.0
 
+  # Hashing for PIN/password (PBKDF2-SHA256)
+  crypto: ^3.0.5
+
   # Local offline-first database (source of truth on device)
   drift: ^2.20.0
   sqlite3_flutter_libs: ^0.5.24

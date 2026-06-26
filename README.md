@@ -13,8 +13,8 @@ billing system — fast, reliable, and **safe against data loss**.
 |------:|-------------|-------|
 | 1 | Architecture + project scaffold, theme, DI, app shell | ✅ Done |
 | 2 | Database (Drift local + Supabase cloud schema, migrations) | ✅ Done |
-| 3 | Authentication, PIN login, RBAC | ⏳ Next |
-| 4 | Products | ⬜ |
+| 3 | Authentication, PIN login, RBAC | ✅ Done |
+| 4 | Products | ⏳ Next |
 | 5 | Billing | ⬜ |
 | 6 | Printing (ESC/POS thermal) | ⬜ |
 | 7 | Reports | ⬜ |

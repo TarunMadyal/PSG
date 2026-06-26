@@ -1,42 +1,97 @@
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psg_pos/app/app.dart';
+import 'package:psg_pos/core/di/providers.dart';
+import 'package:psg_pos/core/enums.dart';
+import 'package:psg_pos/core/security/pin_hasher.dart';
+import 'package:psg_pos/data/local/app_database.dart';
 
 void main() {
-  testWidgets('App boots to the styled billing shell', (tester) async {
-    // Use a tablet-sized surface so the wide (NavigationRail) layout renders.
-    tester.view.physicalSize = const Size(1280, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
+  late AppDatabase db;
+  const hasher = PinHasher(iterations: 500);
 
-    await tester.pumpWidget(const ProviderScope(child: PsgPosApp()));
-    await tester.pumpAndSettle();
-
-    // Lands on Billing by default.
-    expect(find.text('Fast Billing'), findsOneWidget);
-
-    // All six top-level destinations are present in the rail.
-    expect(find.text('Billing'), findsWidgets);
-    expect(find.text('Products'), findsWidgets);
-    expect(find.text('Settings'), findsWidgets);
-
-    // Sync status is surfaced for trust.
-    expect(find.text('Offline'), findsOneWidget);
+  setUp(() {
+    db = AppDatabase.forTesting(
+      NativeDatabase.memory(
+        setup: (raw) => raw.execute('PRAGMA foreign_keys = ON;'),
+      ),
+    );
   });
 
-  testWidgets('Can navigate to Reports tab', (tester) async {
+  tearDown(() async => db.close());
+
+  Future<void> seedUser(String name, UserRole role) {
+    return db.usersDao.save(
+      UsersCompanion.insert(
+        name: name,
+        role: role,
+        pinHash: Value(hasher.hash('1234')),
+      ),
+    );
+  }
+
+  Widget buildApp() => ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          pinHasherProvider.overrideWithValue(hasher),
+        ],
+        child: const PsgPosApp(),
+      );
+
+  Future<void> pumpTablet(WidgetTester tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(const ProviderScope(child: PsgPosApp()));
+    await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
+  }
 
-    await tester.tap(find.text('Reports').first);
+  Future<void> loginWithPin(WidgetTester tester) async {
+    for (final d in ['1', '2', '3', '4']) {
+      await tester.tap(find.text(d));
+      await tester.pump();
+    }
+    await tester.tap(find.widgetWithText(FilledButton, 'Log in'));
     await tester.pumpAndSettle();
+  }
 
+  testWidgets('fresh install shows first-run setup', (tester) async {
+    await pumpTablet(tester);
+    expect(find.text('Set up your shop'), findsOneWidget);
+  });
+
+  testWidgets('with accounts present, shows the login screen', (tester) async {
+    await seedUser('Asha', UserRole.owner);
+    await pumpTablet(tester);
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('Asha'), findsWidgets);
+  });
+
+  testWidgets('owner login lands on billing with full nav', (tester) async {
+    await seedUser('Asha', UserRole.owner);
+    await pumpTablet(tester);
+    await loginWithPin(tester);
+
+    expect(find.text('Fast Billing'), findsOneWidget);
+    // Owner sees owner-only destinations.
+    expect(find.text('Settings'), findsWidgets);
     expect(find.text('Reports'), findsWidgets);
-    expect(find.textContaining('Phase 7'), findsOneWidget);
+    expect(find.text('Products'), findsWidgets);
+  });
+
+  testWidgets('staff login hides owner-only navigation', (tester) async {
+    await seedUser('Ravi', UserRole.staff);
+    await pumpTablet(tester);
+    await loginWithPin(tester);
+
+    expect(find.text('Fast Billing'), findsOneWidget);
+    expect(find.text('Billing'), findsWidgets);
+    // Owner-only destinations are not shown to staff.
+    expect(find.text('Settings'), findsNothing);
+    expect(find.text('Reports'), findsNothing);
+    expect(find.text('Products'), findsNothing);
   });
 }
