@@ -15,8 +15,8 @@ billing system — fast, reliable, and **safe against data loss**.
 | 2 | Database (Drift local + Supabase cloud schema, migrations) | ✅ Done |
 | 3 | Authentication, PIN login, RBAC | ✅ Done |
 | 4 | Products (catalog + stock) | ✅ Done |
-| 5 | Billing | ⏳ Next |
-| 6 | Printing (ESC/POS thermal) | ⬜ |
+| 5 | Billing (cart, discounts, checkout) | ✅ Done |
+| 6 | Printing (ESC/POS thermal) | ⏳ Next |
 | 7 | Reports | ⬜ |
 | 8 | Cloud sync | ⬜ |
 | 9 | Testing & hardening | ⬜ |

@@ -1,0 +1,142 @@
+import 'package:drift/drift.dart';
+
+import '../../../core/enums.dart';
+import '../../../core/error/failure.dart';
+import '../../../core/error/result.dart';
+import '../../../core/utils/app_logger.dart';
+import '../../../core/utils/money.dart';
+import '../../../data/local/app_database.dart';
+import '../../../data/local/daos/bills_dao.dart';
+import '../../../data/local/daos/customers_dao.dart';
+import '../../../data/local/daos/inventory_dao.dart';
+import '../domain/bill_receipt.dart';
+import '../domain/cart.dart';
+import '../domain/bill_repository.dart';
+
+/// Local implementation: a checkout is one atomic transaction that writes the
+/// bill, its items, the inventory sale movements, and any customer — so a sale
+/// is all-or-nothing and fully offline.
+class BillRepositoryImpl implements BillRepository {
+  BillRepositoryImpl({
+    required AppDatabase db,
+    required BillsDao billsDao,
+    required InventoryDao inventoryDao,
+    required CustomersDao customersDao,
+  })  : _db = db,
+        _billsDao = billsDao,
+        _inventoryDao = inventoryDao,
+        _customersDao = customersDao;
+
+  final AppDatabase _db;
+  final BillsDao _billsDao;
+  final InventoryDao _inventoryDao;
+  final CustomersDao _customersDao;
+
+  @override
+  Future<Result<BillReceipt>> checkout({
+    required Cart cart,
+    required String cashierId,
+    required String cashierName,
+  }) async {
+    if (cart.isEmpty) {
+      return const Result.failure(ValidationFailure('The cart is empty.'));
+    }
+
+    try {
+      final receipt = await _db.transaction(() async {
+        final customerId = await _customersDao.upsertByPhone(
+          name: cart.customerName,
+          phone: cart.customerPhone,
+        );
+
+        final invoiceNo = await _billsDao.nextInvoiceNo();
+
+        final bill = await _billsDao.insertBill(
+          BillsCompanion.insert(
+            invoiceNo: invoiceNo,
+            cashierId: cashierId,
+            customerId: Value(customerId),
+            subtotalPaise: Value(cart.subtotal.paise),
+            discountPaise: Value(cart.totalDiscount.paise),
+            gstPaise: Value(cart.gst.paise),
+            grandTotalPaise: Value(cart.grandTotal.paise),
+            paymentMethod: cart.paymentMethod,
+          ),
+        );
+
+        final receiptLines = <ReceiptLine>[];
+        for (final line in cart.lines) {
+          await _billsDao.insertItem(
+            BillItemsCompanion.insert(
+              billId: bill.id,
+              productId: line.productId,
+              nameSnapshot: line.name,
+              qty: Value(line.qty),
+              ratePaise: Value(line.unitPrice.paise),
+              discountPaise: Value(line.discount.paise),
+              amountPaise: Value(line.amount.paise),
+            ),
+          );
+
+          // Decrement stock through the append-only ledger.
+          await _inventoryDao.adjust(
+            productId: line.productId,
+            changeQty: -line.qty,
+            reason: MovementReason.sale,
+            refBillId: bill.id,
+          );
+
+          receiptLines.add(
+            ReceiptLine(
+              name: line.name,
+              qty: line.qty,
+              unitPrice: line.unitPrice,
+              discount: line.discount,
+              amount: line.amount,
+            ),
+          );
+        }
+
+        return BillReceipt(
+          id: bill.id,
+          invoiceNo: invoiceNo,
+          billedAt: bill.billedAt,
+          cashierName: cashierName,
+          lines: receiptLines,
+          subtotal: cart.subtotal,
+          discount: cart.totalDiscount,
+          gst: cart.gst,
+          grandTotal: cart.grandTotal,
+          paymentMethod: cart.paymentMethod,
+          customerName: cart.customerName,
+          customerPhone: cart.customerPhone,
+        );
+      });
+
+      return Result.success(receipt);
+    } catch (e, st) {
+      AppLogger.e('Checkout failed', error: e, stackTrace: st);
+      return const Result.failure(
+        StorageFailure('Could not complete the sale. Please try again.'),
+      );
+    }
+  }
+
+  @override
+  Stream<List<BillSummary>> watchRecent({int limit = 25}) {
+    return _billsDao.watchRecent(limit: limit).map(
+          (rows) => rows
+              .map(
+                (b) => BillSummary(
+                  id: b.id,
+                  invoiceNo: b.invoiceNo,
+                  billedAt: b.billedAt,
+                  grandTotal: Money(b.grandTotalPaise),
+                  paymentMethod: b.paymentMethod,
+                  status: b.status,
+                ),
+              )
+              .toList(),
+        );
+  }
+}

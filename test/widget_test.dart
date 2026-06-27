@@ -75,7 +75,8 @@ void main() {
     await pumpTablet(tester);
     await loginWithPin(tester);
 
-    expect(find.text('Fast Billing'), findsOneWidget);
+    // Lands on the billing screen (catalog search field present).
+    expect(find.text('Search products to add'), findsOneWidget);
     // Owner sees owner-only destinations.
     expect(find.text('Settings'), findsWidgets);
     expect(find.text('Reports'), findsWidgets);
@@ -87,7 +88,7 @@ void main() {
     await pumpTablet(tester);
     await loginWithPin(tester);
 
-    expect(find.text('Fast Billing'), findsOneWidget);
+    expect(find.text('Search products to add'), findsOneWidget);
     expect(find.text('Billing'), findsWidgets);
     // Owner-only destinations are not shown to staff.
     expect(find.text('Settings'), findsNothing);
