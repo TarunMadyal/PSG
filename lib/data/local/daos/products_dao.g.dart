@@ -5,7 +5,6 @@ part of 'products_dao.dart';
 // ignore_for_file: type=lint
 mixin _$ProductsDaoMixin on DatabaseAccessor<AppDatabase> {
   $ProductsTable get products => attachedDatabase.products;
-  $InventoryTable get inventory => attachedDatabase.inventory;
   $OutboxTable get outbox => attachedDatabase.outbox;
   ProductsDaoManager get managers => ProductsDaoManager(this);
 }
@@ -15,8 +14,6 @@ class ProductsDaoManager {
   ProductsDaoManager(this._db);
   $$ProductsTableTableManager get products =>
       $$ProductsTableTableManager(_db.attachedDatabase, _db.products);
-  $$InventoryTableTableManager get inventory =>
-      $$InventoryTableTableManager(_db.attachedDatabase, _db.inventory);
   $$OutboxTableTableManager get outbox =>
       $$OutboxTableTableManager(_db.attachedDatabase, _db.outbox);
 }

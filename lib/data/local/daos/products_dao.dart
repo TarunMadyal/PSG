@@ -8,44 +8,16 @@ import '../tables/tables.dart';
 
 part 'products_dao.g.dart';
 
-/// A catalog row: a product joined with its current stock level.
-typedef CatalogRow = ({Product product, int stock, int reorderLevel});
-
 /// Data access for [Products], including the offline-first write pattern:
 /// every save atomically persists the product **and** enqueues a sync outbox
 /// entry in a single transaction.
-@DriftAccessor(tables: [Products, Inventory, Outbox])
+@DriftAccessor(tables: [Products, Outbox])
 class ProductsDao extends DatabaseAccessor<AppDatabase>
     with _$ProductsDaoMixin {
   ProductsDao(super.db);
 
-  /// Live catalog: active products left-joined with their stock, name-sorted.
-  Stream<List<CatalogRow>> watchCatalog() {
-    final query = select(products).join([
-      leftOuterJoin(
-        inventory,
-        inventory.productId.equalsExp(products.id) &
-            inventory.isDeleted.equals(false),
-      ),
-    ])
-      ..where(products.isDeleted.equals(false) & products.isActive.equals(true))
-      ..orderBy([OrderingTerm.asc(products.name)]);
-
-    return query.watch().map(
-          (rows) => rows.map((r) {
-            final p = r.readTable(products);
-            final inv = r.readTableOrNull(inventory);
-            return (
-              product: p,
-              stock: inv?.qtyOnHand ?? 0,
-              reorderLevel: inv?.reorderLevel ?? 0,
-            );
-          }).toList(),
-        );
-  }
-
-  /// Active (non-deleted, in-stock-eligible) products, name-sorted, as a live
-  /// stream so the UI updates instantly on any change.
+  /// Live catalog: active (non-deleted) products, name-sorted, as a live stream
+  /// so the UI updates instantly on any change.
   Stream<List<Product>> watchActive() {
     return (select(products)
           ..where((t) => t.isDeleted.equals(false) & t.isActive.equals(true))
@@ -67,7 +39,7 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
   }
 
-  /// Case-insensitive search across name, SKU and barcode.
+  /// Case-insensitive search across name, brand, category, size and colour.
   Future<List<Product>> search(String query) {
     final like = '%${query.trim()}%';
     return (select(products)
@@ -75,8 +47,10 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
             (t) =>
                 t.isDeleted.equals(false) &
                 (t.name.like(like) |
-                    t.sku.like(like) |
-                    t.barcode.like(like)),
+                    t.brand.like(like) |
+                    t.category.like(like) |
+                    t.size.like(like) |
+                    t.color.like(like)),
           )
           ..orderBy([(t) => OrderingTerm.asc(t.name)]))
         .get();

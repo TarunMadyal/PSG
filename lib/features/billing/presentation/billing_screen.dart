@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../products/application/product_providers.dart';
 import '../../products/domain/product_item.dart';
@@ -121,13 +120,10 @@ class _ProductTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final outOfStock = item.stock <= 0;
 
     return Card(
       child: InkWell(
-        onTap: outOfStock
-            ? null
-            : () => ref.read(cartProvider.notifier).addProduct(item),
+        onTap: () => ref.read(cartProvider.notifier).addProduct(item),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
@@ -139,27 +135,22 @@ class _ProductTile extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
+              if (item.attributesLabel.isNotEmpty)
+                Text(
+                  item.attributesLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ),
               const Spacer(),
-              Row(
-                children: [
-                  Text(
-                    item.price.formatted,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: scheme.primary,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    outOfStock ? 'Out' : 'Stk ${item.stock}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: outOfStock
-                          ? AppColors.danger
-                          : scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+              Text(
+                item.price.formatted,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.primary,
+                ),
               ),
             ],
           ),

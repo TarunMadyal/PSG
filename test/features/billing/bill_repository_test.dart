@@ -24,14 +24,9 @@ void main() {
     bills = BillRepositoryImpl(
       db: db,
       billsDao: db.billsDao,
-      inventoryDao: db.inventoryDao,
       customersDao: db.customersDao,
     );
-    products = ProductRepositoryImpl(
-      db: db,
-      productsDao: db.productsDao,
-      inventoryDao: db.inventoryDao,
-    );
+    products = ProductRepositoryImpl(productsDao: db.productsDao);
 
     // A cashier is required (bills.cashier_id FK).
     final user = await db.usersDao.save(
@@ -42,9 +37,9 @@ void main() {
 
   tearDown(() async => db.close());
 
-  Future<ProductItem> seed(String name, double price, int stock) async {
+  Future<ProductItem> seed(String name, double price) async {
     await products.save(
-      ProductDraft(name: name, price: Money.fromRupees(price), stock: stock),
+      ProductDraft(name: name, price: Money.fromRupees(price)),
     );
     return (await products.watchCatalog().first)
         .firstWhere((p) => p.name == name);
@@ -59,8 +54,8 @@ void main() {
     expect(result.isSuccess, isTrue, reason: result.failureOrNull?.message);
   }
 
-  test('checkout creates a bill, items, and decrements stock', () async {
-    final shirt = await seed('Shirt', 100, 10);
+  test('checkout creates a bill and its items', () async {
+    final shirt = await seed('Shirt', 100);
 
     await checkout(
       cartOf([
@@ -81,19 +76,11 @@ void main() {
     final items = await db.billsDao.itemsFor(billRows.single.id);
     expect(items, hasLength(1));
     expect(items.single.qty, 2);
-
-    // Stock 10 → 8, with a sale movement recorded.
-    expect(await db.inventoryDao.qtyFor(shirt.id), 8);
-    final moves = await (db.select(db.inventoryMovements)
-          ..where((t) => t.reason.equalsValue(MovementReason.sale)))
-        .get();
-    expect(moves, hasLength(1));
-    expect(moves.single.changeQty, -2);
   });
 
   test('totals apply per-line and bill discounts', () async {
-    final a = await seed('A', 100, 10);
-    final b = await seed('B', 50, 10);
+    final a = await seed('A', 100);
+    final b = await seed('B', 50);
 
     await checkout(
       cartOf(
@@ -119,7 +106,7 @@ void main() {
   });
 
   test('invoice numbers increment per sale', () async {
-    final p = await seed('P', 10, 100);
+    final p = await seed('P', 10);
     final line = CartLine(productId: p.id, name: p.name, unitPrice: p.price);
 
     await checkout(cartOf([line]));
@@ -141,7 +128,7 @@ void main() {
   });
 
   test('a phone number creates and links a customer', () async {
-    final p = await seed('P', 10, 100);
+    final p = await seed('P', 10);
     await checkout(
       Cart(
         lines: [CartLine(productId: p.id, name: p.name, unitPrice: p.price)],
@@ -159,7 +146,7 @@ void main() {
   });
 
   test('watchRecent surfaces completed bills', () async {
-    final p = await seed('P', 10, 100);
+    final p = await seed('P', 10);
     await checkout(
       cartOf([CartLine(productId: p.id, name: p.name, unitPrice: p.price)]),
     );

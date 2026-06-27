@@ -23,6 +23,14 @@ class CustomersDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
   }
 
+  /// Live list of saved customers, newest first.
+  Stream<List<Customer>> watchAll() {
+    return (select(customers)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .watch();
+  }
+
   /// Finds an existing customer by phone or creates one. Returns the id, or
   /// null if no phone was supplied (anonymous sale).
   Future<String?> upsertByPhone({String? name, String? phone}) async {

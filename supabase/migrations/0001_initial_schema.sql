@@ -41,19 +41,19 @@ create table if not exists public.users (
 );
 
 create table if not exists public.app_settings (
-  id            uuid primary key default gen_random_uuid(),
-  shop_name     text        not null default 'PSG Padmashree Garments',
-  address       text,
-  phone         text,
-  gst_number    text,
-  logo_url      text,
-  receipt_width integer     not null default 80,
-  footer_text   text,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now(),
-  version       integer     not null default 1,
-  is_deleted    boolean     not null default false,
-  device_id     text
+  id              uuid primary key default gen_random_uuid(),
+  shop_name       text        not null default 'PSG Padmashree Garments',
+  address         text,
+  phone           text,
+  receipt_width   integer     not null default 80,
+  footer_text     text,
+  printer_name    text,
+  printer_address text,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  version         integer     not null default 1,
+  is_deleted      boolean     not null default false,
+  device_id       text
 );
 
 create table if not exists public.products (
@@ -63,38 +63,8 @@ create table if not exists public.products (
   brand       text,
   size        text,
   color       text,
-  sku         text,
-  barcode     text,
   price_paise bigint      not null default 0,
-  cost_paise  bigint,
-  image_url   text,
   is_active   boolean     not null default true,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
-  version     integer     not null default 1,
-  is_deleted  boolean     not null default false,
-  device_id   text
-);
-
-create table if not exists public.inventory (
-  id            uuid primary key default gen_random_uuid(),
-  product_id    uuid        not null references public.products (id),
-  qty_on_hand   integer     not null default 0,
-  reorder_level integer     not null default 0,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now(),
-  version       integer     not null default 1,
-  is_deleted    boolean     not null default false,
-  device_id     text
-);
-
-create table if not exists public.inventory_movements (
-  id          uuid primary key default gen_random_uuid(),
-  product_id  uuid        not null references public.products (id),
-  change_qty  integer     not null,
-  reason      text        not null check (reason in ('sale', 'returned', 'adjust', 'restock')),
-  ref_bill_id uuid,
-  note        text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   version     integer     not null default 1,
@@ -152,13 +122,11 @@ create table if not exists public.bill_items (
 -- ---------------------------------------------------------------------------
 -- Indexes — fast search and delta sync.
 -- ---------------------------------------------------------------------------
-create index if not exists idx_products_barcode    on public.products (barcode);
 create index if not exists idx_products_updated_at  on public.products (updated_at);
 create index if not exists idx_customers_phone      on public.customers (phone);
 create index if not exists idx_bills_billed_at      on public.bills (billed_at);
 create index if not exists idx_bills_updated_at     on public.bills (updated_at);
 create index if not exists idx_bill_items_bill_id   on public.bill_items (bill_id);
-create index if not exists idx_moves_product_id     on public.inventory_movements (product_id);
 
 -- ---------------------------------------------------------------------------
 -- updated_at triggers on every table.
@@ -167,7 +135,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'users','app_settings','products','inventory','inventory_movements',
+    'users','app_settings','products',
     'customers','bills','bill_items'
   ] loop
     execute format(

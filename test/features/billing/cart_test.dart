@@ -6,12 +6,10 @@ import 'package:psg_pos/features/billing/application/cart_controller.dart';
 import 'package:psg_pos/features/billing/domain/cart.dart';
 import 'package:psg_pos/features/products/domain/product_item.dart';
 
-ProductItem product(String id, {double price = 100, int stock = 10}) =>
-    ProductItem(
+ProductItem product(String id, {double price = 100}) => ProductItem(
       id: id,
       name: 'P-$id',
       price: Money.fromRupees(price),
-      stock: stock,
     );
 
 void main() {
@@ -73,12 +71,12 @@ void main() {
       expect(cart().lines.single.qty, 2);
     });
 
-    test('quantity is capped at available stock', () {
-      controller().addProduct(product('a', stock: 2));
+    test('incrementing raises the quantity', () {
+      controller().addProduct(product('a'));
       controller()
-        ..increment('a') // 2
-        ..increment('a'); // would be 3, capped at 2
-      expect(cart().lines.single.qty, 2);
+        ..increment('a')
+        ..increment('a');
+      expect(cart().lines.single.qty, 3);
     });
 
     test('decrementing to zero removes the line', () {

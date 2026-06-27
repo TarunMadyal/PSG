@@ -98,8 +98,6 @@ class _DashboardView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.xl),
-        _InventoryValueCard(snapshot: data.inventory),
-        const SizedBox(height: AppSpacing.xl),
         _SectionCard(
           title: 'Best sellers',
           icon: Icons.star_outline,
@@ -115,30 +113,6 @@ class _DashboardView extends StatelessWidget {
                         trailing: Text(
                           b.revenue.formatted,
                           style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                  ],
-                ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        _SectionCard(
-          title: 'Low stock',
-          icon: Icons.warning_amber_outlined,
-          child: data.lowStock.isEmpty
-              ? const _EmptyRow('All products are above their reorder level.')
-              : Column(
-                  children: [
-                    for (final l in data.lowStock)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(l.name),
-                        subtitle: Text('Reorder at ${l.reorderLevel}'),
-                        trailing: Text(
-                          '${l.stock} left',
-                          style: const TextStyle(
-                            color: AppColors.warning,
-                            fontWeight: FontWeight.w700,
-                          ),
                         ),
                       ),
                   ],
@@ -198,59 +172,6 @@ class _KpiCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _InventoryValueCard extends StatelessWidget {
-  const _InventoryValueCard({required this.snapshot});
-
-  final InventorySnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      title: 'Inventory value',
-      icon: Icons.inventory_outlined,
-      child: Column(
-        children: [
-          _row(context, 'Retail value', snapshot.retailValue.formatted),
-          _row(context, 'Cost value', snapshot.costValue.formatted),
-          _row(
-            context,
-            'Potential margin',
-            snapshot.potentialMargin.formatted,
-            highlight: true,
-          ),
-          const Divider(),
-          _row(context, 'Products', '${snapshot.productCount}'),
-          _row(context, 'Units in stock', '${snapshot.totalUnits}'),
-        ],
-      ),
-    );
-  }
-
-  Widget _row(
-    BuildContext context,
-    String label,
-    String value, {
-    bool highlight = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: highlight ? FontWeight.w800 : FontWeight.w600,
-              color: highlight ? AppColors.success : null,
-            ),
-          ),
-        ],
       ),
     );
   }

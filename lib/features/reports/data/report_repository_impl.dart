@@ -39,43 +39,9 @@ class ReportRepositoryImpl implements ReportRepository {
   }
 
   @override
-  Future<List<LowStockItem>> lowStock({int limit = 50}) async {
-    final rows = await _dao.lowStock(limit: limit);
-    return rows
-        .map(
-          (r) => LowStockItem(
-            name: r.name,
-            stock: r.stock,
-            reorderLevel: r.reorderLevel,
-          ),
-        )
-        .toList();
-  }
-
-  @override
-  Future<InventorySnapshot> inventoryValue() async {
-    final v = await _dao.inventoryValue();
-    return InventorySnapshot(
-      retailValue: Money(v.retailPaise),
-      costValue: Money(v.costPaise),
-      productCount: v.productCount,
-      totalUnits: v.totalUnits,
-    );
-  }
-
-  @override
   Future<ReportDashboard> dashboard(ReportRange range) async {
-    final results = await Future.wait([
-      salesSummary(range),
-      bestSellers(range),
-      lowStock(),
-      inventoryValue(),
-    ]);
-    return ReportDashboard(
-      sales: results[0] as SalesSummary,
-      bestSellers: results[1] as List<BestSeller>,
-      lowStock: results[2] as List<LowStockItem>,
-      inventory: results[3] as InventorySnapshot,
-    );
+    final sales = await salesSummary(range);
+    final best = await bestSellers(range);
+    return ReportDashboard(sales: sales, bestSellers: best);
   }
 }

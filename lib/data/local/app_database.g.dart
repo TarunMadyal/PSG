@@ -697,18 +697,6 @@ class $AppSettingsTable extends AppSettings
   late final GeneratedColumn<String> phone = GeneratedColumn<String>(
       'phone', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _gstNumberMeta =
-      const VerificationMeta('gstNumber');
-  @override
-  late final GeneratedColumn<String> gstNumber = GeneratedColumn<String>(
-      'gst_number', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _logoUrlMeta =
-      const VerificationMeta('logoUrl');
-  @override
-  late final GeneratedColumn<String> logoUrl = GeneratedColumn<String>(
-      'logo_url', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _receiptWidthMeta =
       const VerificationMeta('receiptWidth');
   @override
@@ -723,6 +711,18 @@ class $AppSettingsTable extends AppSettings
   late final GeneratedColumn<String> footerText = GeneratedColumn<String>(
       'footer_text', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _printerNameMeta =
+      const VerificationMeta('printerName');
+  @override
+  late final GeneratedColumn<String> printerName = GeneratedColumn<String>(
+      'printer_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _printerAddressMeta =
+      const VerificationMeta('printerAddress');
+  @override
+  late final GeneratedColumn<String> printerAddress = GeneratedColumn<String>(
+      'printer_address', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -734,10 +734,10 @@ class $AppSettingsTable extends AppSettings
         shopName,
         address,
         phone,
-        gstNumber,
-        logoUrl,
         receiptWidth,
-        footerText
+        footerText,
+        printerName,
+        printerAddress
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -784,14 +784,6 @@ class $AppSettingsTable extends AppSettings
       context.handle(
           _phoneMeta, phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta));
     }
-    if (data.containsKey('gst_number')) {
-      context.handle(_gstNumberMeta,
-          gstNumber.isAcceptableOrUnknown(data['gst_number']!, _gstNumberMeta));
-    }
-    if (data.containsKey('logo_url')) {
-      context.handle(_logoUrlMeta,
-          logoUrl.isAcceptableOrUnknown(data['logo_url']!, _logoUrlMeta));
-    }
     if (data.containsKey('receipt_width')) {
       context.handle(
           _receiptWidthMeta,
@@ -803,6 +795,18 @@ class $AppSettingsTable extends AppSettings
           _footerTextMeta,
           footerText.isAcceptableOrUnknown(
               data['footer_text']!, _footerTextMeta));
+    }
+    if (data.containsKey('printer_name')) {
+      context.handle(
+          _printerNameMeta,
+          printerName.isAcceptableOrUnknown(
+              data['printer_name']!, _printerNameMeta));
+    }
+    if (data.containsKey('printer_address')) {
+      context.handle(
+          _printerAddressMeta,
+          printerAddress.isAcceptableOrUnknown(
+              data['printer_address']!, _printerAddressMeta));
     }
     return context;
   }
@@ -831,14 +835,14 @@ class $AppSettingsTable extends AppSettings
           .read(DriftSqlType.string, data['${effectivePrefix}address']),
       phone: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}phone']),
-      gstNumber: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}gst_number']),
-      logoUrl: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}logo_url']),
       receiptWidth: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}receipt_width'])!,
       footerText: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}footer_text']),
+      printerName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}printer_name']),
+      printerAddress: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}printer_address']),
     );
   }
 
@@ -858,12 +862,16 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
   final String shopName;
   final String? address;
   final String? phone;
-  final String? gstNumber;
-  final String? logoUrl;
 
   /// Receipt paper width in mm (58 or 80).
   final int receiptWidth;
+
+  /// Printed at the bottom of every bill (e.g. "Thank you! Visit again.").
   final String? footerText;
+
+  /// The default Bluetooth thermal printer, saved after pairing in Settings.
+  final String? printerName;
+  final String? printerAddress;
   const AppSetting(
       {required this.id,
       required this.createdAt,
@@ -874,10 +882,10 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       required this.shopName,
       this.address,
       this.phone,
-      this.gstNumber,
-      this.logoUrl,
       required this.receiptWidth,
-      this.footerText});
+      this.footerText,
+      this.printerName,
+      this.printerAddress});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -896,15 +904,15 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     if (!nullToAbsent || phone != null) {
       map['phone'] = Variable<String>(phone);
     }
-    if (!nullToAbsent || gstNumber != null) {
-      map['gst_number'] = Variable<String>(gstNumber);
-    }
-    if (!nullToAbsent || logoUrl != null) {
-      map['logo_url'] = Variable<String>(logoUrl);
-    }
     map['receipt_width'] = Variable<int>(receiptWidth);
     if (!nullToAbsent || footerText != null) {
       map['footer_text'] = Variable<String>(footerText);
+    }
+    if (!nullToAbsent || printerName != null) {
+      map['printer_name'] = Variable<String>(printerName);
+    }
+    if (!nullToAbsent || printerAddress != null) {
+      map['printer_address'] = Variable<String>(printerAddress);
     }
     return map;
   }
@@ -925,16 +933,16 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           : Value(address),
       phone:
           phone == null && nullToAbsent ? const Value.absent() : Value(phone),
-      gstNumber: gstNumber == null && nullToAbsent
-          ? const Value.absent()
-          : Value(gstNumber),
-      logoUrl: logoUrl == null && nullToAbsent
-          ? const Value.absent()
-          : Value(logoUrl),
       receiptWidth: Value(receiptWidth),
       footerText: footerText == null && nullToAbsent
           ? const Value.absent()
           : Value(footerText),
+      printerName: printerName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(printerName),
+      printerAddress: printerAddress == null && nullToAbsent
+          ? const Value.absent()
+          : Value(printerAddress),
     );
   }
 
@@ -951,10 +959,10 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       shopName: serializer.fromJson<String>(json['shopName']),
       address: serializer.fromJson<String?>(json['address']),
       phone: serializer.fromJson<String?>(json['phone']),
-      gstNumber: serializer.fromJson<String?>(json['gstNumber']),
-      logoUrl: serializer.fromJson<String?>(json['logoUrl']),
       receiptWidth: serializer.fromJson<int>(json['receiptWidth']),
       footerText: serializer.fromJson<String?>(json['footerText']),
+      printerName: serializer.fromJson<String?>(json['printerName']),
+      printerAddress: serializer.fromJson<String?>(json['printerAddress']),
     );
   }
   @override
@@ -970,10 +978,10 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       'shopName': serializer.toJson<String>(shopName),
       'address': serializer.toJson<String?>(address),
       'phone': serializer.toJson<String?>(phone),
-      'gstNumber': serializer.toJson<String?>(gstNumber),
-      'logoUrl': serializer.toJson<String?>(logoUrl),
       'receiptWidth': serializer.toJson<int>(receiptWidth),
       'footerText': serializer.toJson<String?>(footerText),
+      'printerName': serializer.toJson<String?>(printerName),
+      'printerAddress': serializer.toJson<String?>(printerAddress),
     };
   }
 
@@ -987,10 +995,10 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           String? shopName,
           Value<String?> address = const Value.absent(),
           Value<String?> phone = const Value.absent(),
-          Value<String?> gstNumber = const Value.absent(),
-          Value<String?> logoUrl = const Value.absent(),
           int? receiptWidth,
-          Value<String?> footerText = const Value.absent()}) =>
+          Value<String?> footerText = const Value.absent(),
+          Value<String?> printerName = const Value.absent(),
+          Value<String?> printerAddress = const Value.absent()}) =>
       AppSetting(
         id: id ?? this.id,
         createdAt: createdAt ?? this.createdAt,
@@ -1001,10 +1009,11 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
         shopName: shopName ?? this.shopName,
         address: address.present ? address.value : this.address,
         phone: phone.present ? phone.value : this.phone,
-        gstNumber: gstNumber.present ? gstNumber.value : this.gstNumber,
-        logoUrl: logoUrl.present ? logoUrl.value : this.logoUrl,
         receiptWidth: receiptWidth ?? this.receiptWidth,
         footerText: footerText.present ? footerText.value : this.footerText,
+        printerName: printerName.present ? printerName.value : this.printerName,
+        printerAddress:
+            printerAddress.present ? printerAddress.value : this.printerAddress,
       );
   AppSetting copyWithCompanion(AppSettingsCompanion data) {
     return AppSetting(
@@ -1017,13 +1026,16 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       shopName: data.shopName.present ? data.shopName.value : this.shopName,
       address: data.address.present ? data.address.value : this.address,
       phone: data.phone.present ? data.phone.value : this.phone,
-      gstNumber: data.gstNumber.present ? data.gstNumber.value : this.gstNumber,
-      logoUrl: data.logoUrl.present ? data.logoUrl.value : this.logoUrl,
       receiptWidth: data.receiptWidth.present
           ? data.receiptWidth.value
           : this.receiptWidth,
       footerText:
           data.footerText.present ? data.footerText.value : this.footerText,
+      printerName:
+          data.printerName.present ? data.printerName.value : this.printerName,
+      printerAddress: data.printerAddress.present
+          ? data.printerAddress.value
+          : this.printerAddress,
     );
   }
 
@@ -1039,10 +1051,10 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           ..write('shopName: $shopName, ')
           ..write('address: $address, ')
           ..write('phone: $phone, ')
-          ..write('gstNumber: $gstNumber, ')
-          ..write('logoUrl: $logoUrl, ')
           ..write('receiptWidth: $receiptWidth, ')
-          ..write('footerText: $footerText')
+          ..write('footerText: $footerText, ')
+          ..write('printerName: $printerName, ')
+          ..write('printerAddress: $printerAddress')
           ..write(')'))
         .toString();
   }
@@ -1058,10 +1070,10 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       shopName,
       address,
       phone,
-      gstNumber,
-      logoUrl,
       receiptWidth,
-      footerText);
+      footerText,
+      printerName,
+      printerAddress);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1075,10 +1087,10 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           other.shopName == this.shopName &&
           other.address == this.address &&
           other.phone == this.phone &&
-          other.gstNumber == this.gstNumber &&
-          other.logoUrl == this.logoUrl &&
           other.receiptWidth == this.receiptWidth &&
-          other.footerText == this.footerText);
+          other.footerText == this.footerText &&
+          other.printerName == this.printerName &&
+          other.printerAddress == this.printerAddress);
 }
 
 class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
@@ -1091,10 +1103,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   final Value<String> shopName;
   final Value<String?> address;
   final Value<String?> phone;
-  final Value<String?> gstNumber;
-  final Value<String?> logoUrl;
   final Value<int> receiptWidth;
   final Value<String?> footerText;
+  final Value<String?> printerName;
+  final Value<String?> printerAddress;
   final Value<int> rowid;
   const AppSettingsCompanion({
     this.id = const Value.absent(),
@@ -1106,10 +1118,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.shopName = const Value.absent(),
     this.address = const Value.absent(),
     this.phone = const Value.absent(),
-    this.gstNumber = const Value.absent(),
-    this.logoUrl = const Value.absent(),
     this.receiptWidth = const Value.absent(),
     this.footerText = const Value.absent(),
+    this.printerName = const Value.absent(),
+    this.printerAddress = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AppSettingsCompanion.insert({
@@ -1122,10 +1134,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.shopName = const Value.absent(),
     this.address = const Value.absent(),
     this.phone = const Value.absent(),
-    this.gstNumber = const Value.absent(),
-    this.logoUrl = const Value.absent(),
     this.receiptWidth = const Value.absent(),
     this.footerText = const Value.absent(),
+    this.printerName = const Value.absent(),
+    this.printerAddress = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   static Insertable<AppSetting> custom({
@@ -1138,10 +1150,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Expression<String>? shopName,
     Expression<String>? address,
     Expression<String>? phone,
-    Expression<String>? gstNumber,
-    Expression<String>? logoUrl,
     Expression<int>? receiptWidth,
     Expression<String>? footerText,
+    Expression<String>? printerName,
+    Expression<String>? printerAddress,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1154,10 +1166,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       if (shopName != null) 'shop_name': shopName,
       if (address != null) 'address': address,
       if (phone != null) 'phone': phone,
-      if (gstNumber != null) 'gst_number': gstNumber,
-      if (logoUrl != null) 'logo_url': logoUrl,
       if (receiptWidth != null) 'receipt_width': receiptWidth,
       if (footerText != null) 'footer_text': footerText,
+      if (printerName != null) 'printer_name': printerName,
+      if (printerAddress != null) 'printer_address': printerAddress,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1172,10 +1184,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       Value<String>? shopName,
       Value<String?>? address,
       Value<String?>? phone,
-      Value<String?>? gstNumber,
-      Value<String?>? logoUrl,
       Value<int>? receiptWidth,
       Value<String?>? footerText,
+      Value<String?>? printerName,
+      Value<String?>? printerAddress,
       Value<int>? rowid}) {
     return AppSettingsCompanion(
       id: id ?? this.id,
@@ -1187,10 +1199,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       shopName: shopName ?? this.shopName,
       address: address ?? this.address,
       phone: phone ?? this.phone,
-      gstNumber: gstNumber ?? this.gstNumber,
-      logoUrl: logoUrl ?? this.logoUrl,
       receiptWidth: receiptWidth ?? this.receiptWidth,
       footerText: footerText ?? this.footerText,
+      printerName: printerName ?? this.printerName,
+      printerAddress: printerAddress ?? this.printerAddress,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1225,17 +1237,17 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     if (phone.present) {
       map['phone'] = Variable<String>(phone.value);
     }
-    if (gstNumber.present) {
-      map['gst_number'] = Variable<String>(gstNumber.value);
-    }
-    if (logoUrl.present) {
-      map['logo_url'] = Variable<String>(logoUrl.value);
-    }
     if (receiptWidth.present) {
       map['receipt_width'] = Variable<int>(receiptWidth.value);
     }
     if (footerText.present) {
       map['footer_text'] = Variable<String>(footerText.value);
+    }
+    if (printerName.present) {
+      map['printer_name'] = Variable<String>(printerName.value);
+    }
+    if (printerAddress.present) {
+      map['printer_address'] = Variable<String>(printerAddress.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -1255,10 +1267,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
           ..write('shopName: $shopName, ')
           ..write('address: $address, ')
           ..write('phone: $phone, ')
-          ..write('gstNumber: $gstNumber, ')
-          ..write('logoUrl: $logoUrl, ')
           ..write('receiptWidth: $receiptWidth, ')
           ..write('footerText: $footerText, ')
+          ..write('printerName: $printerName, ')
+          ..write('printerAddress: $printerAddress, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1343,17 +1355,6 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
   late final GeneratedColumn<String> color = GeneratedColumn<String>(
       'color', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _skuMeta = const VerificationMeta('sku');
-  @override
-  late final GeneratedColumn<String> sku = GeneratedColumn<String>(
-      'sku', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _barcodeMeta =
-      const VerificationMeta('barcode');
-  @override
-  late final GeneratedColumn<String> barcode = GeneratedColumn<String>(
-      'barcode', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _pricePaiseMeta =
       const VerificationMeta('pricePaise');
   @override
@@ -1362,18 +1363,6 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
-  static const VerificationMeta _costPaiseMeta =
-      const VerificationMeta('costPaise');
-  @override
-  late final GeneratedColumn<int> costPaise = GeneratedColumn<int>(
-      'cost_paise', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _imageUrlMeta =
-      const VerificationMeta('imageUrl');
-  @override
-  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
-      'image_url', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _isActiveMeta =
       const VerificationMeta('isActive');
   @override
@@ -1397,11 +1386,7 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         brand,
         size,
         color,
-        sku,
-        barcode,
         pricePaise,
-        costPaise,
-        imageUrl,
         isActive
       ];
   @override
@@ -1459,27 +1444,11 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       context.handle(
           _colorMeta, color.isAcceptableOrUnknown(data['color']!, _colorMeta));
     }
-    if (data.containsKey('sku')) {
-      context.handle(
-          _skuMeta, sku.isAcceptableOrUnknown(data['sku']!, _skuMeta));
-    }
-    if (data.containsKey('barcode')) {
-      context.handle(_barcodeMeta,
-          barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta));
-    }
     if (data.containsKey('price_paise')) {
       context.handle(
           _pricePaiseMeta,
           pricePaise.isAcceptableOrUnknown(
               data['price_paise']!, _pricePaiseMeta));
-    }
-    if (data.containsKey('cost_paise')) {
-      context.handle(_costPaiseMeta,
-          costPaise.isAcceptableOrUnknown(data['cost_paise']!, _costPaiseMeta));
-    }
-    if (data.containsKey('image_url')) {
-      context.handle(_imageUrlMeta,
-          imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta));
     }
     if (data.containsKey('is_active')) {
       context.handle(_isActiveMeta,
@@ -1516,16 +1485,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           .read(DriftSqlType.string, data['${effectivePrefix}size']),
       color: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}color']),
-      sku: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}sku']),
-      barcode: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}barcode']),
       pricePaise: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}price_paise'])!,
-      costPaise: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}cost_paise']),
-      imageUrl: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}image_url']),
       isActive: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
     );
@@ -1549,15 +1510,9 @@ class Product extends DataClass implements Insertable<Product> {
   final String? brand;
   final String? size;
   final String? color;
-  final String? sku;
-  final String? barcode;
 
-  /// Selling price in integer paise.
+  /// Selling price in integer paise — the single price the customer pays.
   final int pricePaise;
-
-  /// Purchase cost in integer paise (for profit reports later).
-  final int? costPaise;
-  final String? imageUrl;
   final bool isActive;
   const Product(
       {required this.id,
@@ -1571,11 +1526,7 @@ class Product extends DataClass implements Insertable<Product> {
       this.brand,
       this.size,
       this.color,
-      this.sku,
-      this.barcode,
       required this.pricePaise,
-      this.costPaise,
-      this.imageUrl,
       required this.isActive});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1601,19 +1552,7 @@ class Product extends DataClass implements Insertable<Product> {
     if (!nullToAbsent || color != null) {
       map['color'] = Variable<String>(color);
     }
-    if (!nullToAbsent || sku != null) {
-      map['sku'] = Variable<String>(sku);
-    }
-    if (!nullToAbsent || barcode != null) {
-      map['barcode'] = Variable<String>(barcode);
-    }
     map['price_paise'] = Variable<int>(pricePaise);
-    if (!nullToAbsent || costPaise != null) {
-      map['cost_paise'] = Variable<int>(costPaise);
-    }
-    if (!nullToAbsent || imageUrl != null) {
-      map['image_url'] = Variable<String>(imageUrl);
-    }
     map['is_active'] = Variable<bool>(isActive);
     return map;
   }
@@ -1637,17 +1576,7 @@ class Product extends DataClass implements Insertable<Product> {
       size: size == null && nullToAbsent ? const Value.absent() : Value(size),
       color:
           color == null && nullToAbsent ? const Value.absent() : Value(color),
-      sku: sku == null && nullToAbsent ? const Value.absent() : Value(sku),
-      barcode: barcode == null && nullToAbsent
-          ? const Value.absent()
-          : Value(barcode),
       pricePaise: Value(pricePaise),
-      costPaise: costPaise == null && nullToAbsent
-          ? const Value.absent()
-          : Value(costPaise),
-      imageUrl: imageUrl == null && nullToAbsent
-          ? const Value.absent()
-          : Value(imageUrl),
       isActive: Value(isActive),
     );
   }
@@ -1667,11 +1596,7 @@ class Product extends DataClass implements Insertable<Product> {
       brand: serializer.fromJson<String?>(json['brand']),
       size: serializer.fromJson<String?>(json['size']),
       color: serializer.fromJson<String?>(json['color']),
-      sku: serializer.fromJson<String?>(json['sku']),
-      barcode: serializer.fromJson<String?>(json['barcode']),
       pricePaise: serializer.fromJson<int>(json['pricePaise']),
-      costPaise: serializer.fromJson<int?>(json['costPaise']),
-      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
       isActive: serializer.fromJson<bool>(json['isActive']),
     );
   }
@@ -1690,11 +1615,7 @@ class Product extends DataClass implements Insertable<Product> {
       'brand': serializer.toJson<String?>(brand),
       'size': serializer.toJson<String?>(size),
       'color': serializer.toJson<String?>(color),
-      'sku': serializer.toJson<String?>(sku),
-      'barcode': serializer.toJson<String?>(barcode),
       'pricePaise': serializer.toJson<int>(pricePaise),
-      'costPaise': serializer.toJson<int?>(costPaise),
-      'imageUrl': serializer.toJson<String?>(imageUrl),
       'isActive': serializer.toJson<bool>(isActive),
     };
   }
@@ -1711,11 +1632,7 @@ class Product extends DataClass implements Insertable<Product> {
           Value<String?> brand = const Value.absent(),
           Value<String?> size = const Value.absent(),
           Value<String?> color = const Value.absent(),
-          Value<String?> sku = const Value.absent(),
-          Value<String?> barcode = const Value.absent(),
           int? pricePaise,
-          Value<int?> costPaise = const Value.absent(),
-          Value<String?> imageUrl = const Value.absent(),
           bool? isActive}) =>
       Product(
         id: id ?? this.id,
@@ -1729,11 +1646,7 @@ class Product extends DataClass implements Insertable<Product> {
         brand: brand.present ? brand.value : this.brand,
         size: size.present ? size.value : this.size,
         color: color.present ? color.value : this.color,
-        sku: sku.present ? sku.value : this.sku,
-        barcode: barcode.present ? barcode.value : this.barcode,
         pricePaise: pricePaise ?? this.pricePaise,
-        costPaise: costPaise.present ? costPaise.value : this.costPaise,
-        imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
         isActive: isActive ?? this.isActive,
       );
   Product copyWithCompanion(ProductsCompanion data) {
@@ -1749,12 +1662,8 @@ class Product extends DataClass implements Insertable<Product> {
       brand: data.brand.present ? data.brand.value : this.brand,
       size: data.size.present ? data.size.value : this.size,
       color: data.color.present ? data.color.value : this.color,
-      sku: data.sku.present ? data.sku.value : this.sku,
-      barcode: data.barcode.present ? data.barcode.value : this.barcode,
       pricePaise:
           data.pricePaise.present ? data.pricePaise.value : this.pricePaise,
-      costPaise: data.costPaise.present ? data.costPaise.value : this.costPaise,
-      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
     );
   }
@@ -1773,35 +1682,15 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('brand: $brand, ')
           ..write('size: $size, ')
           ..write('color: $color, ')
-          ..write('sku: $sku, ')
-          ..write('barcode: $barcode, ')
           ..write('pricePaise: $pricePaise, ')
-          ..write('costPaise: $costPaise, ')
-          ..write('imageUrl: $imageUrl, ')
           ..write('isActive: $isActive')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      createdAt,
-      updatedAt,
-      version,
-      isDeleted,
-      deviceId,
-      name,
-      category,
-      brand,
-      size,
-      color,
-      sku,
-      barcode,
-      pricePaise,
-      costPaise,
-      imageUrl,
-      isActive);
+  int get hashCode => Object.hash(id, createdAt, updatedAt, version, isDeleted,
+      deviceId, name, category, brand, size, color, pricePaise, isActive);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1817,11 +1706,7 @@ class Product extends DataClass implements Insertable<Product> {
           other.brand == this.brand &&
           other.size == this.size &&
           other.color == this.color &&
-          other.sku == this.sku &&
-          other.barcode == this.barcode &&
           other.pricePaise == this.pricePaise &&
-          other.costPaise == this.costPaise &&
-          other.imageUrl == this.imageUrl &&
           other.isActive == this.isActive);
 }
 
@@ -1837,11 +1722,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<String?> brand;
   final Value<String?> size;
   final Value<String?> color;
-  final Value<String?> sku;
-  final Value<String?> barcode;
   final Value<int> pricePaise;
-  final Value<int?> costPaise;
-  final Value<String?> imageUrl;
   final Value<bool> isActive;
   final Value<int> rowid;
   const ProductsCompanion({
@@ -1856,11 +1737,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.brand = const Value.absent(),
     this.size = const Value.absent(),
     this.color = const Value.absent(),
-    this.sku = const Value.absent(),
-    this.barcode = const Value.absent(),
     this.pricePaise = const Value.absent(),
-    this.costPaise = const Value.absent(),
-    this.imageUrl = const Value.absent(),
     this.isActive = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1876,11 +1753,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.brand = const Value.absent(),
     this.size = const Value.absent(),
     this.color = const Value.absent(),
-    this.sku = const Value.absent(),
-    this.barcode = const Value.absent(),
     this.pricePaise = const Value.absent(),
-    this.costPaise = const Value.absent(),
-    this.imageUrl = const Value.absent(),
     this.isActive = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name);
@@ -1896,11 +1769,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<String>? brand,
     Expression<String>? size,
     Expression<String>? color,
-    Expression<String>? sku,
-    Expression<String>? barcode,
     Expression<int>? pricePaise,
-    Expression<int>? costPaise,
-    Expression<String>? imageUrl,
     Expression<bool>? isActive,
     Expression<int>? rowid,
   }) {
@@ -1916,11 +1785,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (brand != null) 'brand': brand,
       if (size != null) 'size': size,
       if (color != null) 'color': color,
-      if (sku != null) 'sku': sku,
-      if (barcode != null) 'barcode': barcode,
       if (pricePaise != null) 'price_paise': pricePaise,
-      if (costPaise != null) 'cost_paise': costPaise,
-      if (imageUrl != null) 'image_url': imageUrl,
       if (isActive != null) 'is_active': isActive,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1938,11 +1803,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       Value<String?>? brand,
       Value<String?>? size,
       Value<String?>? color,
-      Value<String?>? sku,
-      Value<String?>? barcode,
       Value<int>? pricePaise,
-      Value<int?>? costPaise,
-      Value<String?>? imageUrl,
       Value<bool>? isActive,
       Value<int>? rowid}) {
     return ProductsCompanion(
@@ -1957,11 +1818,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       brand: brand ?? this.brand,
       size: size ?? this.size,
       color: color ?? this.color,
-      sku: sku ?? this.sku,
-      barcode: barcode ?? this.barcode,
       pricePaise: pricePaise ?? this.pricePaise,
-      costPaise: costPaise ?? this.costPaise,
-      imageUrl: imageUrl ?? this.imageUrl,
       isActive: isActive ?? this.isActive,
       rowid: rowid ?? this.rowid,
     );
@@ -2003,20 +1860,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     if (color.present) {
       map['color'] = Variable<String>(color.value);
     }
-    if (sku.present) {
-      map['sku'] = Variable<String>(sku.value);
-    }
-    if (barcode.present) {
-      map['barcode'] = Variable<String>(barcode.value);
-    }
     if (pricePaise.present) {
       map['price_paise'] = Variable<int>(pricePaise.value);
-    }
-    if (costPaise.present) {
-      map['cost_paise'] = Variable<int>(costPaise.value);
-    }
-    if (imageUrl.present) {
-      map['image_url'] = Variable<String>(imageUrl.value);
     }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
@@ -2041,1032 +1886,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('brand: $brand, ')
           ..write('size: $size, ')
           ..write('color: $color, ')
-          ..write('sku: $sku, ')
-          ..write('barcode: $barcode, ')
           ..write('pricePaise: $pricePaise, ')
-          ..write('costPaise: $costPaise, ')
-          ..write('imageUrl: $imageUrl, ')
           ..write('isActive: $isActive, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $InventoryTable extends Inventory
-    with TableInfo<$InventoryTable, InventoryData> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $InventoryTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-      'id', aliasedName, false,
-      type: DriftSqlType.string,
-      requiredDuringInsert: false,
-      clientDefault: newId);
-  static const VerificationMeta _createdAtMeta =
-      const VerificationMeta('createdAt');
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-      'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime,
-      requiredDuringInsert: false,
-      clientDefault: () => DateTime.now().toUtc());
-  static const VerificationMeta _updatedAtMeta =
-      const VerificationMeta('updatedAt');
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-      'updated_at', aliasedName, false,
-      type: DriftSqlType.dateTime,
-      requiredDuringInsert: false,
-      clientDefault: () => DateTime.now().toUtc());
-  static const VerificationMeta _versionMeta =
-      const VerificationMeta('version');
-  @override
-  late final GeneratedColumn<int> version = GeneratedColumn<int>(
-      'version', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(1));
-  static const VerificationMeta _isDeletedMeta =
-      const VerificationMeta('isDeleted');
-  @override
-  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
-      'is_deleted', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  static const VerificationMeta _deviceIdMeta =
-      const VerificationMeta('deviceId');
-  @override
-  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
-      'device_id', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _productIdMeta =
-      const VerificationMeta('productId');
-  @override
-  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
-      'product_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _qtyOnHandMeta =
-      const VerificationMeta('qtyOnHand');
-  @override
-  late final GeneratedColumn<int> qtyOnHand = GeneratedColumn<int>(
-      'qty_on_hand', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(0));
-  static const VerificationMeta _reorderLevelMeta =
-      const VerificationMeta('reorderLevel');
-  @override
-  late final GeneratedColumn<int> reorderLevel = GeneratedColumn<int>(
-      'reorder_level', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(0));
-  @override
-  List<GeneratedColumn> get $columns => [
-        id,
-        createdAt,
-        updatedAt,
-        version,
-        isDeleted,
-        deviceId,
-        productId,
-        qtyOnHand,
-        reorderLevel
-      ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'inventory';
-  @override
-  VerificationContext validateIntegrity(Insertable<InventoryData> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta,
-          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(_updatedAtMeta,
-          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
-    }
-    if (data.containsKey('version')) {
-      context.handle(_versionMeta,
-          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
-    }
-    if (data.containsKey('is_deleted')) {
-      context.handle(_isDeletedMeta,
-          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
-    }
-    if (data.containsKey('device_id')) {
-      context.handle(_deviceIdMeta,
-          deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta));
-    }
-    if (data.containsKey('product_id')) {
-      context.handle(_productIdMeta,
-          productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
-    } else if (isInserting) {
-      context.missing(_productIdMeta);
-    }
-    if (data.containsKey('qty_on_hand')) {
-      context.handle(
-          _qtyOnHandMeta,
-          qtyOnHand.isAcceptableOrUnknown(
-              data['qty_on_hand']!, _qtyOnHandMeta));
-    }
-    if (data.containsKey('reorder_level')) {
-      context.handle(
-          _reorderLevelMeta,
-          reorderLevel.isAcceptableOrUnknown(
-              data['reorder_level']!, _reorderLevelMeta));
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  InventoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return InventoryData(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      createdAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
-      updatedAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
-      version: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
-      isDeleted: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
-      deviceId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}device_id']),
-      productId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}product_id'])!,
-      qtyOnHand: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}qty_on_hand'])!,
-      reorderLevel: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}reorder_level'])!,
-    );
-  }
-
-  @override
-  $InventoryTable createAlias(String alias) {
-    return $InventoryTable(attachedDatabase, alias);
-  }
-}
-
-class InventoryData extends DataClass implements Insertable<InventoryData> {
-  final String id;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final int version;
-  final bool isDeleted;
-  final String? deviceId;
-  final String productId;
-  final int qtyOnHand;
-  final int reorderLevel;
-  const InventoryData(
-      {required this.id,
-      required this.createdAt,
-      required this.updatedAt,
-      required this.version,
-      required this.isDeleted,
-      this.deviceId,
-      required this.productId,
-      required this.qtyOnHand,
-      required this.reorderLevel});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    map['version'] = Variable<int>(version);
-    map['is_deleted'] = Variable<bool>(isDeleted);
-    if (!nullToAbsent || deviceId != null) {
-      map['device_id'] = Variable<String>(deviceId);
-    }
-    map['product_id'] = Variable<String>(productId);
-    map['qty_on_hand'] = Variable<int>(qtyOnHand);
-    map['reorder_level'] = Variable<int>(reorderLevel);
-    return map;
-  }
-
-  InventoryCompanion toCompanion(bool nullToAbsent) {
-    return InventoryCompanion(
-      id: Value(id),
-      createdAt: Value(createdAt),
-      updatedAt: Value(updatedAt),
-      version: Value(version),
-      isDeleted: Value(isDeleted),
-      deviceId: deviceId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(deviceId),
-      productId: Value(productId),
-      qtyOnHand: Value(qtyOnHand),
-      reorderLevel: Value(reorderLevel),
-    );
-  }
-
-  factory InventoryData.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return InventoryData(
-      id: serializer.fromJson<String>(json['id']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-      version: serializer.fromJson<int>(json['version']),
-      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      deviceId: serializer.fromJson<String?>(json['deviceId']),
-      productId: serializer.fromJson<String>(json['productId']),
-      qtyOnHand: serializer.fromJson<int>(json['qtyOnHand']),
-      reorderLevel: serializer.fromJson<int>(json['reorderLevel']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-      'version': serializer.toJson<int>(version),
-      'isDeleted': serializer.toJson<bool>(isDeleted),
-      'deviceId': serializer.toJson<String?>(deviceId),
-      'productId': serializer.toJson<String>(productId),
-      'qtyOnHand': serializer.toJson<int>(qtyOnHand),
-      'reorderLevel': serializer.toJson<int>(reorderLevel),
-    };
-  }
-
-  InventoryData copyWith(
-          {String? id,
-          DateTime? createdAt,
-          DateTime? updatedAt,
-          int? version,
-          bool? isDeleted,
-          Value<String?> deviceId = const Value.absent(),
-          String? productId,
-          int? qtyOnHand,
-          int? reorderLevel}) =>
-      InventoryData(
-        id: id ?? this.id,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-        version: version ?? this.version,
-        isDeleted: isDeleted ?? this.isDeleted,
-        deviceId: deviceId.present ? deviceId.value : this.deviceId,
-        productId: productId ?? this.productId,
-        qtyOnHand: qtyOnHand ?? this.qtyOnHand,
-        reorderLevel: reorderLevel ?? this.reorderLevel,
-      );
-  InventoryData copyWithCompanion(InventoryCompanion data) {
-    return InventoryData(
-      id: data.id.present ? data.id.value : this.id,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      version: data.version.present ? data.version.value : this.version,
-      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
-      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
-      productId: data.productId.present ? data.productId.value : this.productId,
-      qtyOnHand: data.qtyOnHand.present ? data.qtyOnHand.value : this.qtyOnHand,
-      reorderLevel: data.reorderLevel.present
-          ? data.reorderLevel.value
-          : this.reorderLevel,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('InventoryData(')
-          ..write('id: $id, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('version: $version, ')
-          ..write('isDeleted: $isDeleted, ')
-          ..write('deviceId: $deviceId, ')
-          ..write('productId: $productId, ')
-          ..write('qtyOnHand: $qtyOnHand, ')
-          ..write('reorderLevel: $reorderLevel')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, createdAt, updatedAt, version, isDeleted,
-      deviceId, productId, qtyOnHand, reorderLevel);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is InventoryData &&
-          other.id == this.id &&
-          other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt &&
-          other.version == this.version &&
-          other.isDeleted == this.isDeleted &&
-          other.deviceId == this.deviceId &&
-          other.productId == this.productId &&
-          other.qtyOnHand == this.qtyOnHand &&
-          other.reorderLevel == this.reorderLevel);
-}
-
-class InventoryCompanion extends UpdateCompanion<InventoryData> {
-  final Value<String> id;
-  final Value<DateTime> createdAt;
-  final Value<DateTime> updatedAt;
-  final Value<int> version;
-  final Value<bool> isDeleted;
-  final Value<String?> deviceId;
-  final Value<String> productId;
-  final Value<int> qtyOnHand;
-  final Value<int> reorderLevel;
-  final Value<int> rowid;
-  const InventoryCompanion({
-    this.id = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.version = const Value.absent(),
-    this.isDeleted = const Value.absent(),
-    this.deviceId = const Value.absent(),
-    this.productId = const Value.absent(),
-    this.qtyOnHand = const Value.absent(),
-    this.reorderLevel = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  InventoryCompanion.insert({
-    this.id = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.version = const Value.absent(),
-    this.isDeleted = const Value.absent(),
-    this.deviceId = const Value.absent(),
-    required String productId,
-    this.qtyOnHand = const Value.absent(),
-    this.reorderLevel = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : productId = Value(productId);
-  static Insertable<InventoryData> custom({
-    Expression<String>? id,
-    Expression<DateTime>? createdAt,
-    Expression<DateTime>? updatedAt,
-    Expression<int>? version,
-    Expression<bool>? isDeleted,
-    Expression<String>? deviceId,
-    Expression<String>? productId,
-    Expression<int>? qtyOnHand,
-    Expression<int>? reorderLevel,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (createdAt != null) 'created_at': createdAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (version != null) 'version': version,
-      if (isDeleted != null) 'is_deleted': isDeleted,
-      if (deviceId != null) 'device_id': deviceId,
-      if (productId != null) 'product_id': productId,
-      if (qtyOnHand != null) 'qty_on_hand': qtyOnHand,
-      if (reorderLevel != null) 'reorder_level': reorderLevel,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  InventoryCompanion copyWith(
-      {Value<String>? id,
-      Value<DateTime>? createdAt,
-      Value<DateTime>? updatedAt,
-      Value<int>? version,
-      Value<bool>? isDeleted,
-      Value<String?>? deviceId,
-      Value<String>? productId,
-      Value<int>? qtyOnHand,
-      Value<int>? reorderLevel,
-      Value<int>? rowid}) {
-    return InventoryCompanion(
-      id: id ?? this.id,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      version: version ?? this.version,
-      isDeleted: isDeleted ?? this.isDeleted,
-      deviceId: deviceId ?? this.deviceId,
-      productId: productId ?? this.productId,
-      qtyOnHand: qtyOnHand ?? this.qtyOnHand,
-      reorderLevel: reorderLevel ?? this.reorderLevel,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (version.present) {
-      map['version'] = Variable<int>(version.value);
-    }
-    if (isDeleted.present) {
-      map['is_deleted'] = Variable<bool>(isDeleted.value);
-    }
-    if (deviceId.present) {
-      map['device_id'] = Variable<String>(deviceId.value);
-    }
-    if (productId.present) {
-      map['product_id'] = Variable<String>(productId.value);
-    }
-    if (qtyOnHand.present) {
-      map['qty_on_hand'] = Variable<int>(qtyOnHand.value);
-    }
-    if (reorderLevel.present) {
-      map['reorder_level'] = Variable<int>(reorderLevel.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('InventoryCompanion(')
-          ..write('id: $id, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('version: $version, ')
-          ..write('isDeleted: $isDeleted, ')
-          ..write('deviceId: $deviceId, ')
-          ..write('productId: $productId, ')
-          ..write('qtyOnHand: $qtyOnHand, ')
-          ..write('reorderLevel: $reorderLevel, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $InventoryMovementsTable extends InventoryMovements
-    with TableInfo<$InventoryMovementsTable, InventoryMovement> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $InventoryMovementsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-      'id', aliasedName, false,
-      type: DriftSqlType.string,
-      requiredDuringInsert: false,
-      clientDefault: newId);
-  static const VerificationMeta _createdAtMeta =
-      const VerificationMeta('createdAt');
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-      'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime,
-      requiredDuringInsert: false,
-      clientDefault: () => DateTime.now().toUtc());
-  static const VerificationMeta _updatedAtMeta =
-      const VerificationMeta('updatedAt');
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-      'updated_at', aliasedName, false,
-      type: DriftSqlType.dateTime,
-      requiredDuringInsert: false,
-      clientDefault: () => DateTime.now().toUtc());
-  static const VerificationMeta _versionMeta =
-      const VerificationMeta('version');
-  @override
-  late final GeneratedColumn<int> version = GeneratedColumn<int>(
-      'version', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(1));
-  static const VerificationMeta _isDeletedMeta =
-      const VerificationMeta('isDeleted');
-  @override
-  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
-      'is_deleted', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  static const VerificationMeta _deviceIdMeta =
-      const VerificationMeta('deviceId');
-  @override
-  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
-      'device_id', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _productIdMeta =
-      const VerificationMeta('productId');
-  @override
-  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
-      'product_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _changeQtyMeta =
-      const VerificationMeta('changeQty');
-  @override
-  late final GeneratedColumn<int> changeQty = GeneratedColumn<int>(
-      'change_qty', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
-  @override
-  late final GeneratedColumnWithTypeConverter<MovementReason, String> reason =
-      GeneratedColumn<String>('reason', aliasedName, false,
-              type: DriftSqlType.string, requiredDuringInsert: true)
-          .withConverter<MovementReason>(
-              $InventoryMovementsTable.$converterreason);
-  static const VerificationMeta _refBillIdMeta =
-      const VerificationMeta('refBillId');
-  @override
-  late final GeneratedColumn<String> refBillId = GeneratedColumn<String>(
-      'ref_bill_id', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _noteMeta = const VerificationMeta('note');
-  @override
-  late final GeneratedColumn<String> note = GeneratedColumn<String>(
-      'note', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  @override
-  List<GeneratedColumn> get $columns => [
-        id,
-        createdAt,
-        updatedAt,
-        version,
-        isDeleted,
-        deviceId,
-        productId,
-        changeQty,
-        reason,
-        refBillId,
-        note
-      ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'inventory_movements';
-  @override
-  VerificationContext validateIntegrity(Insertable<InventoryMovement> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta,
-          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(_updatedAtMeta,
-          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
-    }
-    if (data.containsKey('version')) {
-      context.handle(_versionMeta,
-          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
-    }
-    if (data.containsKey('is_deleted')) {
-      context.handle(_isDeletedMeta,
-          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
-    }
-    if (data.containsKey('device_id')) {
-      context.handle(_deviceIdMeta,
-          deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta));
-    }
-    if (data.containsKey('product_id')) {
-      context.handle(_productIdMeta,
-          productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
-    } else if (isInserting) {
-      context.missing(_productIdMeta);
-    }
-    if (data.containsKey('change_qty')) {
-      context.handle(_changeQtyMeta,
-          changeQty.isAcceptableOrUnknown(data['change_qty']!, _changeQtyMeta));
-    } else if (isInserting) {
-      context.missing(_changeQtyMeta);
-    }
-    if (data.containsKey('ref_bill_id')) {
-      context.handle(
-          _refBillIdMeta,
-          refBillId.isAcceptableOrUnknown(
-              data['ref_bill_id']!, _refBillIdMeta));
-    }
-    if (data.containsKey('note')) {
-      context.handle(
-          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  InventoryMovement map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return InventoryMovement(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      createdAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
-      updatedAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
-      version: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
-      isDeleted: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
-      deviceId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}device_id']),
-      productId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}product_id'])!,
-      changeQty: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}change_qty'])!,
-      reason: $InventoryMovementsTable.$converterreason.fromSql(attachedDatabase
-          .typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}reason'])!),
-      refBillId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}ref_bill_id']),
-      note: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}note']),
-    );
-  }
-
-  @override
-  $InventoryMovementsTable createAlias(String alias) {
-    return $InventoryMovementsTable(attachedDatabase, alias);
-  }
-
-  static JsonTypeConverter2<MovementReason, String, String> $converterreason =
-      const EnumNameConverter<MovementReason>(MovementReason.values);
-}
-
-class InventoryMovement extends DataClass
-    implements Insertable<InventoryMovement> {
-  final String id;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final int version;
-  final bool isDeleted;
-  final String? deviceId;
-  final String productId;
-
-  /// Signed quantity delta (negative for a sale, positive for a restock).
-  final int changeQty;
-  final MovementReason reason;
-
-  /// The bill that caused this movement, when applicable.
-  final String? refBillId;
-  final String? note;
-  const InventoryMovement(
-      {required this.id,
-      required this.createdAt,
-      required this.updatedAt,
-      required this.version,
-      required this.isDeleted,
-      this.deviceId,
-      required this.productId,
-      required this.changeQty,
-      required this.reason,
-      this.refBillId,
-      this.note});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    map['version'] = Variable<int>(version);
-    map['is_deleted'] = Variable<bool>(isDeleted);
-    if (!nullToAbsent || deviceId != null) {
-      map['device_id'] = Variable<String>(deviceId);
-    }
-    map['product_id'] = Variable<String>(productId);
-    map['change_qty'] = Variable<int>(changeQty);
-    {
-      map['reason'] = Variable<String>(
-          $InventoryMovementsTable.$converterreason.toSql(reason));
-    }
-    if (!nullToAbsent || refBillId != null) {
-      map['ref_bill_id'] = Variable<String>(refBillId);
-    }
-    if (!nullToAbsent || note != null) {
-      map['note'] = Variable<String>(note);
-    }
-    return map;
-  }
-
-  InventoryMovementsCompanion toCompanion(bool nullToAbsent) {
-    return InventoryMovementsCompanion(
-      id: Value(id),
-      createdAt: Value(createdAt),
-      updatedAt: Value(updatedAt),
-      version: Value(version),
-      isDeleted: Value(isDeleted),
-      deviceId: deviceId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(deviceId),
-      productId: Value(productId),
-      changeQty: Value(changeQty),
-      reason: Value(reason),
-      refBillId: refBillId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(refBillId),
-      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
-    );
-  }
-
-  factory InventoryMovement.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return InventoryMovement(
-      id: serializer.fromJson<String>(json['id']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-      version: serializer.fromJson<int>(json['version']),
-      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      deviceId: serializer.fromJson<String?>(json['deviceId']),
-      productId: serializer.fromJson<String>(json['productId']),
-      changeQty: serializer.fromJson<int>(json['changeQty']),
-      reason: $InventoryMovementsTable.$converterreason
-          .fromJson(serializer.fromJson<String>(json['reason'])),
-      refBillId: serializer.fromJson<String?>(json['refBillId']),
-      note: serializer.fromJson<String?>(json['note']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-      'version': serializer.toJson<int>(version),
-      'isDeleted': serializer.toJson<bool>(isDeleted),
-      'deviceId': serializer.toJson<String?>(deviceId),
-      'productId': serializer.toJson<String>(productId),
-      'changeQty': serializer.toJson<int>(changeQty),
-      'reason': serializer.toJson<String>(
-          $InventoryMovementsTable.$converterreason.toJson(reason)),
-      'refBillId': serializer.toJson<String?>(refBillId),
-      'note': serializer.toJson<String?>(note),
-    };
-  }
-
-  InventoryMovement copyWith(
-          {String? id,
-          DateTime? createdAt,
-          DateTime? updatedAt,
-          int? version,
-          bool? isDeleted,
-          Value<String?> deviceId = const Value.absent(),
-          String? productId,
-          int? changeQty,
-          MovementReason? reason,
-          Value<String?> refBillId = const Value.absent(),
-          Value<String?> note = const Value.absent()}) =>
-      InventoryMovement(
-        id: id ?? this.id,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-        version: version ?? this.version,
-        isDeleted: isDeleted ?? this.isDeleted,
-        deviceId: deviceId.present ? deviceId.value : this.deviceId,
-        productId: productId ?? this.productId,
-        changeQty: changeQty ?? this.changeQty,
-        reason: reason ?? this.reason,
-        refBillId: refBillId.present ? refBillId.value : this.refBillId,
-        note: note.present ? note.value : this.note,
-      );
-  InventoryMovement copyWithCompanion(InventoryMovementsCompanion data) {
-    return InventoryMovement(
-      id: data.id.present ? data.id.value : this.id,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      version: data.version.present ? data.version.value : this.version,
-      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
-      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
-      productId: data.productId.present ? data.productId.value : this.productId,
-      changeQty: data.changeQty.present ? data.changeQty.value : this.changeQty,
-      reason: data.reason.present ? data.reason.value : this.reason,
-      refBillId: data.refBillId.present ? data.refBillId.value : this.refBillId,
-      note: data.note.present ? data.note.value : this.note,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('InventoryMovement(')
-          ..write('id: $id, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('version: $version, ')
-          ..write('isDeleted: $isDeleted, ')
-          ..write('deviceId: $deviceId, ')
-          ..write('productId: $productId, ')
-          ..write('changeQty: $changeQty, ')
-          ..write('reason: $reason, ')
-          ..write('refBillId: $refBillId, ')
-          ..write('note: $note')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, createdAt, updatedAt, version, isDeleted,
-      deviceId, productId, changeQty, reason, refBillId, note);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is InventoryMovement &&
-          other.id == this.id &&
-          other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt &&
-          other.version == this.version &&
-          other.isDeleted == this.isDeleted &&
-          other.deviceId == this.deviceId &&
-          other.productId == this.productId &&
-          other.changeQty == this.changeQty &&
-          other.reason == this.reason &&
-          other.refBillId == this.refBillId &&
-          other.note == this.note);
-}
-
-class InventoryMovementsCompanion extends UpdateCompanion<InventoryMovement> {
-  final Value<String> id;
-  final Value<DateTime> createdAt;
-  final Value<DateTime> updatedAt;
-  final Value<int> version;
-  final Value<bool> isDeleted;
-  final Value<String?> deviceId;
-  final Value<String> productId;
-  final Value<int> changeQty;
-  final Value<MovementReason> reason;
-  final Value<String?> refBillId;
-  final Value<String?> note;
-  final Value<int> rowid;
-  const InventoryMovementsCompanion({
-    this.id = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.version = const Value.absent(),
-    this.isDeleted = const Value.absent(),
-    this.deviceId = const Value.absent(),
-    this.productId = const Value.absent(),
-    this.changeQty = const Value.absent(),
-    this.reason = const Value.absent(),
-    this.refBillId = const Value.absent(),
-    this.note = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  InventoryMovementsCompanion.insert({
-    this.id = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.version = const Value.absent(),
-    this.isDeleted = const Value.absent(),
-    this.deviceId = const Value.absent(),
-    required String productId,
-    required int changeQty,
-    required MovementReason reason,
-    this.refBillId = const Value.absent(),
-    this.note = const Value.absent(),
-    this.rowid = const Value.absent(),
-  })  : productId = Value(productId),
-        changeQty = Value(changeQty),
-        reason = Value(reason);
-  static Insertable<InventoryMovement> custom({
-    Expression<String>? id,
-    Expression<DateTime>? createdAt,
-    Expression<DateTime>? updatedAt,
-    Expression<int>? version,
-    Expression<bool>? isDeleted,
-    Expression<String>? deviceId,
-    Expression<String>? productId,
-    Expression<int>? changeQty,
-    Expression<String>? reason,
-    Expression<String>? refBillId,
-    Expression<String>? note,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (createdAt != null) 'created_at': createdAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (version != null) 'version': version,
-      if (isDeleted != null) 'is_deleted': isDeleted,
-      if (deviceId != null) 'device_id': deviceId,
-      if (productId != null) 'product_id': productId,
-      if (changeQty != null) 'change_qty': changeQty,
-      if (reason != null) 'reason': reason,
-      if (refBillId != null) 'ref_bill_id': refBillId,
-      if (note != null) 'note': note,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  InventoryMovementsCompanion copyWith(
-      {Value<String>? id,
-      Value<DateTime>? createdAt,
-      Value<DateTime>? updatedAt,
-      Value<int>? version,
-      Value<bool>? isDeleted,
-      Value<String?>? deviceId,
-      Value<String>? productId,
-      Value<int>? changeQty,
-      Value<MovementReason>? reason,
-      Value<String?>? refBillId,
-      Value<String?>? note,
-      Value<int>? rowid}) {
-    return InventoryMovementsCompanion(
-      id: id ?? this.id,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      version: version ?? this.version,
-      isDeleted: isDeleted ?? this.isDeleted,
-      deviceId: deviceId ?? this.deviceId,
-      productId: productId ?? this.productId,
-      changeQty: changeQty ?? this.changeQty,
-      reason: reason ?? this.reason,
-      refBillId: refBillId ?? this.refBillId,
-      note: note ?? this.note,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (version.present) {
-      map['version'] = Variable<int>(version.value);
-    }
-    if (isDeleted.present) {
-      map['is_deleted'] = Variable<bool>(isDeleted.value);
-    }
-    if (deviceId.present) {
-      map['device_id'] = Variable<String>(deviceId.value);
-    }
-    if (productId.present) {
-      map['product_id'] = Variable<String>(productId.value);
-    }
-    if (changeQty.present) {
-      map['change_qty'] = Variable<int>(changeQty.value);
-    }
-    if (reason.present) {
-      map['reason'] = Variable<String>(
-          $InventoryMovementsTable.$converterreason.toSql(reason.value));
-    }
-    if (refBillId.present) {
-      map['ref_bill_id'] = Variable<String>(refBillId.value);
-    }
-    if (note.present) {
-      map['note'] = Variable<String>(note.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('InventoryMovementsCompanion(')
-          ..write('id: $id, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('version: $version, ')
-          ..write('isDeleted: $isDeleted, ')
-          ..write('deviceId: $deviceId, ')
-          ..write('productId: $productId, ')
-          ..write('changeQty: $changeQty, ')
-          ..write('reason: $reason, ')
-          ..write('refBillId: $refBillId, ')
-          ..write('note: $note, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5597,9 +4418,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UsersTable users = $UsersTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $ProductsTable products = $ProductsTable(this);
-  late final $InventoryTable inventory = $InventoryTable(this);
-  late final $InventoryMovementsTable inventoryMovements =
-      $InventoryMovementsTable(this);
   late final $CustomersTable customers = $CustomersTable(this);
   late final $BillsTable bills = $BillsTable(this);
   late final $BillItemsTable billItems = $BillItemsTable(this);
@@ -5608,10 +4426,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final ProductsDao productsDao = ProductsDao(this as AppDatabase);
   late final OutboxDao outboxDao = OutboxDao(this as AppDatabase);
   late final UsersDao usersDao = UsersDao(this as AppDatabase);
-  late final InventoryDao inventoryDao = InventoryDao(this as AppDatabase);
   late final BillsDao billsDao = BillsDao(this as AppDatabase);
   late final CustomersDao customersDao = CustomersDao(this as AppDatabase);
   late final ReportsDao reportsDao = ReportsDao(this as AppDatabase);
+  late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5620,8 +4438,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         users,
         appSettings,
         products,
-        inventory,
-        inventoryMovements,
         customers,
         bills,
         billItems,
@@ -5928,10 +4744,10 @@ typedef $$AppSettingsTableCreateCompanionBuilder = AppSettingsCompanion
   Value<String> shopName,
   Value<String?> address,
   Value<String?> phone,
-  Value<String?> gstNumber,
-  Value<String?> logoUrl,
   Value<int> receiptWidth,
   Value<String?> footerText,
+  Value<String?> printerName,
+  Value<String?> printerAddress,
   Value<int> rowid,
 });
 typedef $$AppSettingsTableUpdateCompanionBuilder = AppSettingsCompanion
@@ -5945,10 +4761,10 @@ typedef $$AppSettingsTableUpdateCompanionBuilder = AppSettingsCompanion
   Value<String> shopName,
   Value<String?> address,
   Value<String?> phone,
-  Value<String?> gstNumber,
-  Value<String?> logoUrl,
   Value<int> receiptWidth,
   Value<String?> footerText,
+  Value<String?> printerName,
+  Value<String?> printerAddress,
   Value<int> rowid,
 });
 
@@ -5988,17 +4804,18 @@ class $$AppSettingsTableFilterComposer
   ColumnFilters<String> get phone => $composableBuilder(
       column: $table.phone, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get gstNumber => $composableBuilder(
-      column: $table.gstNumber, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get logoUrl => $composableBuilder(
-      column: $table.logoUrl, builder: (column) => ColumnFilters(column));
-
   ColumnFilters<int> get receiptWidth => $composableBuilder(
       column: $table.receiptWidth, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get footerText => $composableBuilder(
       column: $table.footerText, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get printerName => $composableBuilder(
+      column: $table.printerName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get printerAddress => $composableBuilder(
+      column: $table.printerAddress,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$AppSettingsTableOrderingComposer
@@ -6037,18 +4854,19 @@ class $$AppSettingsTableOrderingComposer
   ColumnOrderings<String> get phone => $composableBuilder(
       column: $table.phone, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get gstNumber => $composableBuilder(
-      column: $table.gstNumber, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get logoUrl => $composableBuilder(
-      column: $table.logoUrl, builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<int> get receiptWidth => $composableBuilder(
       column: $table.receiptWidth,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get footerText => $composableBuilder(
       column: $table.footerText, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get printerName => $composableBuilder(
+      column: $table.printerName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get printerAddress => $composableBuilder(
+      column: $table.printerAddress,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$AppSettingsTableAnnotationComposer
@@ -6087,17 +4905,17 @@ class $$AppSettingsTableAnnotationComposer
   GeneratedColumn<String> get phone =>
       $composableBuilder(column: $table.phone, builder: (column) => column);
 
-  GeneratedColumn<String> get gstNumber =>
-      $composableBuilder(column: $table.gstNumber, builder: (column) => column);
-
-  GeneratedColumn<String> get logoUrl =>
-      $composableBuilder(column: $table.logoUrl, builder: (column) => column);
-
   GeneratedColumn<int> get receiptWidth => $composableBuilder(
       column: $table.receiptWidth, builder: (column) => column);
 
   GeneratedColumn<String> get footerText => $composableBuilder(
       column: $table.footerText, builder: (column) => column);
+
+  GeneratedColumn<String> get printerName => $composableBuilder(
+      column: $table.printerName, builder: (column) => column);
+
+  GeneratedColumn<String> get printerAddress => $composableBuilder(
+      column: $table.printerAddress, builder: (column) => column);
 }
 
 class $$AppSettingsTableTableManager extends RootTableManager<
@@ -6132,10 +4950,10 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             Value<String> shopName = const Value.absent(),
             Value<String?> address = const Value.absent(),
             Value<String?> phone = const Value.absent(),
-            Value<String?> gstNumber = const Value.absent(),
-            Value<String?> logoUrl = const Value.absent(),
             Value<int> receiptWidth = const Value.absent(),
             Value<String?> footerText = const Value.absent(),
+            Value<String?> printerName = const Value.absent(),
+            Value<String?> printerAddress = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               AppSettingsCompanion(
@@ -6148,10 +4966,10 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             shopName: shopName,
             address: address,
             phone: phone,
-            gstNumber: gstNumber,
-            logoUrl: logoUrl,
             receiptWidth: receiptWidth,
             footerText: footerText,
+            printerName: printerName,
+            printerAddress: printerAddress,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -6164,10 +4982,10 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             Value<String> shopName = const Value.absent(),
             Value<String?> address = const Value.absent(),
             Value<String?> phone = const Value.absent(),
-            Value<String?> gstNumber = const Value.absent(),
-            Value<String?> logoUrl = const Value.absent(),
             Value<int> receiptWidth = const Value.absent(),
             Value<String?> footerText = const Value.absent(),
+            Value<String?> printerName = const Value.absent(),
+            Value<String?> printerAddress = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               AppSettingsCompanion.insert(
@@ -6180,10 +4998,10 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             shopName: shopName,
             address: address,
             phone: phone,
-            gstNumber: gstNumber,
-            logoUrl: logoUrl,
             receiptWidth: receiptWidth,
             footerText: footerText,
+            printerName: printerName,
+            printerAddress: printerAddress,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -6217,11 +5035,7 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<String?> brand,
   Value<String?> size,
   Value<String?> color,
-  Value<String?> sku,
-  Value<String?> barcode,
   Value<int> pricePaise,
-  Value<int?> costPaise,
-  Value<String?> imageUrl,
   Value<bool> isActive,
   Value<int> rowid,
 });
@@ -6237,11 +5051,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<String?> brand,
   Value<String?> size,
   Value<String?> color,
-  Value<String?> sku,
-  Value<String?> barcode,
   Value<int> pricePaise,
-  Value<int?> costPaise,
-  Value<String?> imageUrl,
   Value<bool> isActive,
   Value<int> rowid,
 });
@@ -6288,20 +5098,8 @@ class $$ProductsTableFilterComposer
   ColumnFilters<String> get color => $composableBuilder(
       column: $table.color, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get sku => $composableBuilder(
-      column: $table.sku, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get barcode => $composableBuilder(
-      column: $table.barcode, builder: (column) => ColumnFilters(column));
-
   ColumnFilters<int> get pricePaise => $composableBuilder(
       column: $table.pricePaise, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get costPaise => $composableBuilder(
-      column: $table.costPaise, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get imageUrl => $composableBuilder(
-      column: $table.imageUrl, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get isActive => $composableBuilder(
       column: $table.isActive, builder: (column) => ColumnFilters(column));
@@ -6349,20 +5147,8 @@ class $$ProductsTableOrderingComposer
   ColumnOrderings<String> get color => $composableBuilder(
       column: $table.color, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get sku => $composableBuilder(
-      column: $table.sku, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get barcode => $composableBuilder(
-      column: $table.barcode, builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<int> get pricePaise => $composableBuilder(
       column: $table.pricePaise, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get costPaise => $composableBuilder(
-      column: $table.costPaise, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get imageUrl => $composableBuilder(
-      column: $table.imageUrl, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get isActive => $composableBuilder(
       column: $table.isActive, builder: (column) => ColumnOrderings(column));
@@ -6410,20 +5196,8 @@ class $$ProductsTableAnnotationComposer
   GeneratedColumn<String> get color =>
       $composableBuilder(column: $table.color, builder: (column) => column);
 
-  GeneratedColumn<String> get sku =>
-      $composableBuilder(column: $table.sku, builder: (column) => column);
-
-  GeneratedColumn<String> get barcode =>
-      $composableBuilder(column: $table.barcode, builder: (column) => column);
-
   GeneratedColumn<int> get pricePaise => $composableBuilder(
       column: $table.pricePaise, builder: (column) => column);
-
-  GeneratedColumn<int> get costPaise =>
-      $composableBuilder(column: $table.costPaise, builder: (column) => column);
-
-  GeneratedColumn<String> get imageUrl =>
-      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
@@ -6463,11 +5237,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String?> brand = const Value.absent(),
             Value<String?> size = const Value.absent(),
             Value<String?> color = const Value.absent(),
-            Value<String?> sku = const Value.absent(),
-            Value<String?> barcode = const Value.absent(),
             Value<int> pricePaise = const Value.absent(),
-            Value<int?> costPaise = const Value.absent(),
-            Value<String?> imageUrl = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -6483,11 +5253,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             brand: brand,
             size: size,
             color: color,
-            sku: sku,
-            barcode: barcode,
             pricePaise: pricePaise,
-            costPaise: costPaise,
-            imageUrl: imageUrl,
             isActive: isActive,
             rowid: rowid,
           ),
@@ -6503,11 +5269,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String?> brand = const Value.absent(),
             Value<String?> size = const Value.absent(),
             Value<String?> color = const Value.absent(),
-            Value<String?> sku = const Value.absent(),
-            Value<String?> barcode = const Value.absent(),
             Value<int> pricePaise = const Value.absent(),
-            Value<int?> costPaise = const Value.absent(),
-            Value<String?> imageUrl = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -6523,11 +5285,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             brand: brand,
             size: size,
             color: color,
-            sku: sku,
-            barcode: barcode,
             pricePaise: pricePaise,
-            costPaise: costPaise,
-            imageUrl: imageUrl,
             isActive: isActive,
             rowid: rowid,
           ),
@@ -6549,505 +5307,6 @@ typedef $$ProductsTableProcessedTableManager = ProcessedTableManager<
     $$ProductsTableUpdateCompanionBuilder,
     (Product, BaseReferences<_$AppDatabase, $ProductsTable, Product>),
     Product,
-    PrefetchHooks Function()>;
-typedef $$InventoryTableCreateCompanionBuilder = InventoryCompanion Function({
-  Value<String> id,
-  Value<DateTime> createdAt,
-  Value<DateTime> updatedAt,
-  Value<int> version,
-  Value<bool> isDeleted,
-  Value<String?> deviceId,
-  required String productId,
-  Value<int> qtyOnHand,
-  Value<int> reorderLevel,
-  Value<int> rowid,
-});
-typedef $$InventoryTableUpdateCompanionBuilder = InventoryCompanion Function({
-  Value<String> id,
-  Value<DateTime> createdAt,
-  Value<DateTime> updatedAt,
-  Value<int> version,
-  Value<bool> isDeleted,
-  Value<String?> deviceId,
-  Value<String> productId,
-  Value<int> qtyOnHand,
-  Value<int> reorderLevel,
-  Value<int> rowid,
-});
-
-class $$InventoryTableFilterComposer
-    extends Composer<_$AppDatabase, $InventoryTable> {
-  $$InventoryTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get version => $composableBuilder(
-      column: $table.version, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get isDeleted => $composableBuilder(
-      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get deviceId => $composableBuilder(
-      column: $table.deviceId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get productId => $composableBuilder(
-      column: $table.productId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get qtyOnHand => $composableBuilder(
-      column: $table.qtyOnHand, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get reorderLevel => $composableBuilder(
-      column: $table.reorderLevel, builder: (column) => ColumnFilters(column));
-}
-
-class $$InventoryTableOrderingComposer
-    extends Composer<_$AppDatabase, $InventoryTable> {
-  $$InventoryTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get version => $composableBuilder(
-      column: $table.version, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get isDeleted => $composableBuilder(
-      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get deviceId => $composableBuilder(
-      column: $table.deviceId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get productId => $composableBuilder(
-      column: $table.productId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get qtyOnHand => $composableBuilder(
-      column: $table.qtyOnHand, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get reorderLevel => $composableBuilder(
-      column: $table.reorderLevel,
-      builder: (column) => ColumnOrderings(column));
-}
-
-class $$InventoryTableAnnotationComposer
-    extends Composer<_$AppDatabase, $InventoryTable> {
-  $$InventoryTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  GeneratedColumn<int> get version =>
-      $composableBuilder(column: $table.version, builder: (column) => column);
-
-  GeneratedColumn<bool> get isDeleted =>
-      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
-
-  GeneratedColumn<String> get deviceId =>
-      $composableBuilder(column: $table.deviceId, builder: (column) => column);
-
-  GeneratedColumn<String> get productId =>
-      $composableBuilder(column: $table.productId, builder: (column) => column);
-
-  GeneratedColumn<int> get qtyOnHand =>
-      $composableBuilder(column: $table.qtyOnHand, builder: (column) => column);
-
-  GeneratedColumn<int> get reorderLevel => $composableBuilder(
-      column: $table.reorderLevel, builder: (column) => column);
-}
-
-class $$InventoryTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $InventoryTable,
-    InventoryData,
-    $$InventoryTableFilterComposer,
-    $$InventoryTableOrderingComposer,
-    $$InventoryTableAnnotationComposer,
-    $$InventoryTableCreateCompanionBuilder,
-    $$InventoryTableUpdateCompanionBuilder,
-    (
-      InventoryData,
-      BaseReferences<_$AppDatabase, $InventoryTable, InventoryData>
-    ),
-    InventoryData,
-    PrefetchHooks Function()> {
-  $$InventoryTableTableManager(_$AppDatabase db, $InventoryTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$InventoryTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$InventoryTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$InventoryTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<DateTime> updatedAt = const Value.absent(),
-            Value<int> version = const Value.absent(),
-            Value<bool> isDeleted = const Value.absent(),
-            Value<String?> deviceId = const Value.absent(),
-            Value<String> productId = const Value.absent(),
-            Value<int> qtyOnHand = const Value.absent(),
-            Value<int> reorderLevel = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              InventoryCompanion(
-            id: id,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
-            version: version,
-            isDeleted: isDeleted,
-            deviceId: deviceId,
-            productId: productId,
-            qtyOnHand: qtyOnHand,
-            reorderLevel: reorderLevel,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<DateTime> updatedAt = const Value.absent(),
-            Value<int> version = const Value.absent(),
-            Value<bool> isDeleted = const Value.absent(),
-            Value<String?> deviceId = const Value.absent(),
-            required String productId,
-            Value<int> qtyOnHand = const Value.absent(),
-            Value<int> reorderLevel = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              InventoryCompanion.insert(
-            id: id,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
-            version: version,
-            isDeleted: isDeleted,
-            deviceId: deviceId,
-            productId: productId,
-            qtyOnHand: qtyOnHand,
-            reorderLevel: reorderLevel,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$InventoryTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $InventoryTable,
-    InventoryData,
-    $$InventoryTableFilterComposer,
-    $$InventoryTableOrderingComposer,
-    $$InventoryTableAnnotationComposer,
-    $$InventoryTableCreateCompanionBuilder,
-    $$InventoryTableUpdateCompanionBuilder,
-    (
-      InventoryData,
-      BaseReferences<_$AppDatabase, $InventoryTable, InventoryData>
-    ),
-    InventoryData,
-    PrefetchHooks Function()>;
-typedef $$InventoryMovementsTableCreateCompanionBuilder
-    = InventoryMovementsCompanion Function({
-  Value<String> id,
-  Value<DateTime> createdAt,
-  Value<DateTime> updatedAt,
-  Value<int> version,
-  Value<bool> isDeleted,
-  Value<String?> deviceId,
-  required String productId,
-  required int changeQty,
-  required MovementReason reason,
-  Value<String?> refBillId,
-  Value<String?> note,
-  Value<int> rowid,
-});
-typedef $$InventoryMovementsTableUpdateCompanionBuilder
-    = InventoryMovementsCompanion Function({
-  Value<String> id,
-  Value<DateTime> createdAt,
-  Value<DateTime> updatedAt,
-  Value<int> version,
-  Value<bool> isDeleted,
-  Value<String?> deviceId,
-  Value<String> productId,
-  Value<int> changeQty,
-  Value<MovementReason> reason,
-  Value<String?> refBillId,
-  Value<String?> note,
-  Value<int> rowid,
-});
-
-class $$InventoryMovementsTableFilterComposer
-    extends Composer<_$AppDatabase, $InventoryMovementsTable> {
-  $$InventoryMovementsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get version => $composableBuilder(
-      column: $table.version, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get isDeleted => $composableBuilder(
-      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get deviceId => $composableBuilder(
-      column: $table.deviceId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get productId => $composableBuilder(
-      column: $table.productId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get changeQty => $composableBuilder(
-      column: $table.changeQty, builder: (column) => ColumnFilters(column));
-
-  ColumnWithTypeConverterFilters<MovementReason, MovementReason, String>
-      get reason => $composableBuilder(
-          column: $table.reason,
-          builder: (column) => ColumnWithTypeConverterFilters(column));
-
-  ColumnFilters<String> get refBillId => $composableBuilder(
-      column: $table.refBillId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get note => $composableBuilder(
-      column: $table.note, builder: (column) => ColumnFilters(column));
-}
-
-class $$InventoryMovementsTableOrderingComposer
-    extends Composer<_$AppDatabase, $InventoryMovementsTable> {
-  $$InventoryMovementsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get version => $composableBuilder(
-      column: $table.version, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get isDeleted => $composableBuilder(
-      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get deviceId => $composableBuilder(
-      column: $table.deviceId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get productId => $composableBuilder(
-      column: $table.productId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get changeQty => $composableBuilder(
-      column: $table.changeQty, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get reason => $composableBuilder(
-      column: $table.reason, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get refBillId => $composableBuilder(
-      column: $table.refBillId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get note => $composableBuilder(
-      column: $table.note, builder: (column) => ColumnOrderings(column));
-}
-
-class $$InventoryMovementsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $InventoryMovementsTable> {
-  $$InventoryMovementsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  GeneratedColumn<int> get version =>
-      $composableBuilder(column: $table.version, builder: (column) => column);
-
-  GeneratedColumn<bool> get isDeleted =>
-      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
-
-  GeneratedColumn<String> get deviceId =>
-      $composableBuilder(column: $table.deviceId, builder: (column) => column);
-
-  GeneratedColumn<String> get productId =>
-      $composableBuilder(column: $table.productId, builder: (column) => column);
-
-  GeneratedColumn<int> get changeQty =>
-      $composableBuilder(column: $table.changeQty, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<MovementReason, String> get reason =>
-      $composableBuilder(column: $table.reason, builder: (column) => column);
-
-  GeneratedColumn<String> get refBillId =>
-      $composableBuilder(column: $table.refBillId, builder: (column) => column);
-
-  GeneratedColumn<String> get note =>
-      $composableBuilder(column: $table.note, builder: (column) => column);
-}
-
-class $$InventoryMovementsTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $InventoryMovementsTable,
-    InventoryMovement,
-    $$InventoryMovementsTableFilterComposer,
-    $$InventoryMovementsTableOrderingComposer,
-    $$InventoryMovementsTableAnnotationComposer,
-    $$InventoryMovementsTableCreateCompanionBuilder,
-    $$InventoryMovementsTableUpdateCompanionBuilder,
-    (
-      InventoryMovement,
-      BaseReferences<_$AppDatabase, $InventoryMovementsTable, InventoryMovement>
-    ),
-    InventoryMovement,
-    PrefetchHooks Function()> {
-  $$InventoryMovementsTableTableManager(
-      _$AppDatabase db, $InventoryMovementsTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$InventoryMovementsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$InventoryMovementsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$InventoryMovementsTableAnnotationComposer(
-                  $db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<DateTime> updatedAt = const Value.absent(),
-            Value<int> version = const Value.absent(),
-            Value<bool> isDeleted = const Value.absent(),
-            Value<String?> deviceId = const Value.absent(),
-            Value<String> productId = const Value.absent(),
-            Value<int> changeQty = const Value.absent(),
-            Value<MovementReason> reason = const Value.absent(),
-            Value<String?> refBillId = const Value.absent(),
-            Value<String?> note = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              InventoryMovementsCompanion(
-            id: id,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
-            version: version,
-            isDeleted: isDeleted,
-            deviceId: deviceId,
-            productId: productId,
-            changeQty: changeQty,
-            reason: reason,
-            refBillId: refBillId,
-            note: note,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<DateTime> updatedAt = const Value.absent(),
-            Value<int> version = const Value.absent(),
-            Value<bool> isDeleted = const Value.absent(),
-            Value<String?> deviceId = const Value.absent(),
-            required String productId,
-            required int changeQty,
-            required MovementReason reason,
-            Value<String?> refBillId = const Value.absent(),
-            Value<String?> note = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              InventoryMovementsCompanion.insert(
-            id: id,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
-            version: version,
-            isDeleted: isDeleted,
-            deviceId: deviceId,
-            productId: productId,
-            changeQty: changeQty,
-            reason: reason,
-            refBillId: refBillId,
-            note: note,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$InventoryMovementsTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $InventoryMovementsTable,
-    InventoryMovement,
-    $$InventoryMovementsTableFilterComposer,
-    $$InventoryMovementsTableOrderingComposer,
-    $$InventoryMovementsTableAnnotationComposer,
-    $$InventoryMovementsTableCreateCompanionBuilder,
-    $$InventoryMovementsTableUpdateCompanionBuilder,
-    (
-      InventoryMovement,
-      BaseReferences<_$AppDatabase, $InventoryMovementsTable, InventoryMovement>
-    ),
-    InventoryMovement,
     PrefetchHooks Function()>;
 typedef $$CustomersTableCreateCompanionBuilder = CustomersCompanion Function({
   Value<String> id,
@@ -8259,10 +6518,6 @@ class $AppDatabaseManager {
       $$AppSettingsTableTableManager(_db, _db.appSettings);
   $$ProductsTableTableManager get products =>
       $$ProductsTableTableManager(_db, _db.products);
-  $$InventoryTableTableManager get inventory =>
-      $$InventoryTableTableManager(_db, _db.inventory);
-  $$InventoryMovementsTableTableManager get inventoryMovements =>
-      $$InventoryMovementsTableTableManager(_db, _db.inventoryMovements);
   $$CustomersTableTableManager get customers =>
       $$CustomersTableTableManager(_db, _db.customers);
   $$BillsTableTableManager get bills =>

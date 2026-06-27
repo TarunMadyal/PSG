@@ -39,13 +39,6 @@ const List<PosDestination> kPosDestinations = [
     requiredCapability: Capability.manageProducts,
   ),
   PosDestination(
-    path: '/inventory',
-    label: 'Inventory',
-    icon: Icons.inventory_2_outlined,
-    selectedIcon: Icons.inventory_2,
-    requiredCapability: Capability.manageInventory,
-  ),
-  PosDestination(
     path: '/customers',
     label: 'Customers',
     icon: Icons.people_alt_outlined,

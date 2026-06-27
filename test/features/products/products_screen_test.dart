@@ -14,7 +14,6 @@ void main() {
       id: 'p1',
       name: 'Linen Kurta',
       price: Money.fromRupees(499),
-      stock: 8,
     ),
   ];
 
@@ -45,7 +44,7 @@ void main() {
     await pumpScreen(tester, caps: Capability.values.toSet());
 
     expect(find.text('Linen Kurta'), findsOneWidget);
-    expect(find.text('In stock · 8'), findsOneWidget);
+    expect(find.text('₹499.00'), findsOneWidget);
     expect(
       find.widgetWithText(FloatingActionButton, 'Add product'),
       findsOneWidget,

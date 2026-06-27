@@ -10,7 +10,6 @@ final billRepositoryProvider = Provider<BillRepository>((ref) {
   return BillRepositoryImpl(
     db: db,
     billsDao: db.billsDao,
-    inventoryDao: db.inventoryDao,
     customersDao: db.customersDao,
   );
 });

@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import '../../../core/enums.dart';
 import '../../../core/error/failure.dart';
 import '../../../core/error/result.dart';
 import '../../../core/utils/app_logger.dart';
@@ -8,28 +7,24 @@ import '../../../core/utils/money.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/daos/bills_dao.dart';
 import '../../../data/local/daos/customers_dao.dart';
-import '../../../data/local/daos/inventory_dao.dart';
 import '../domain/bill_receipt.dart';
 import '../domain/cart.dart';
 import '../domain/bill_repository.dart';
 
 /// Local implementation: a checkout is one atomic transaction that writes the
-/// bill, its items, the inventory sale movements, and any customer — so a sale
-/// is all-or-nothing and fully offline.
+/// bill, its items and any customer — so a sale is all-or-nothing and fully
+/// offline.
 class BillRepositoryImpl implements BillRepository {
   BillRepositoryImpl({
     required AppDatabase db,
     required BillsDao billsDao,
-    required InventoryDao inventoryDao,
     required CustomersDao customersDao,
   })  : _db = db,
         _billsDao = billsDao,
-        _inventoryDao = inventoryDao,
         _customersDao = customersDao;
 
   final AppDatabase _db;
   final BillsDao _billsDao;
-  final InventoryDao _inventoryDao;
   final CustomersDao _customersDao;
 
   @override
@@ -76,14 +71,6 @@ class BillRepositoryImpl implements BillRepository {
               discountPaise: Value(line.discount.paise),
               amountPaise: Value(line.amount.paise),
             ),
-          );
-
-          // Decrement stock through the append-only ledger.
-          await _inventoryDao.adjust(
-            productId: line.productId,
-            changeQty: -line.qty,
-            reason: MovementReason.sale,
-            refBillId: bill.id,
           );
 
           receiptLines.add(

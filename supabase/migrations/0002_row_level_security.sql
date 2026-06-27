@@ -44,7 +44,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'users','app_settings','products','inventory','inventory_movements',
+    'users','app_settings','products',
     'customers','bills','bill_items'
   ] loop
     execute format('alter table public.%I enable row level security;', t);
@@ -58,7 +58,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'users','app_settings','products','inventory','inventory_movements',
+    'users','app_settings','products',
     'customers','bills','bill_items'
   ] loop
     execute format(
@@ -70,14 +70,12 @@ end$$;
 
 -- ---------------------------------------------------------------------------
 -- STAFF / CASHIER: scoped permissions.
--- Read-only on catalog & stock; create (but not delete) bills, items,
--- customers and stock movements. No access to users/settings (owner-only).
+-- Read-only on catalog; create (but not delete) bills, items and customers.
+-- No access to users/settings (owner-only).
 -- ---------------------------------------------------------------------------
 
--- Read catalog, inventory and customers.
+-- Read catalog and customers.
 create policy staff_read_products on public.products
-  for select to authenticated using (public.is_authenticated_staff());
-create policy staff_read_inventory on public.inventory
   for select to authenticated using (public.is_authenticated_staff());
 create policy staff_read_customers on public.customers
   for select to authenticated using (public.is_authenticated_staff());
@@ -95,12 +93,6 @@ create policy staff_insert_bills on public.bills
 create policy staff_read_bill_items on public.bill_items
   for select to authenticated using (public.is_authenticated_staff());
 create policy staff_insert_bill_items on public.bill_items
-  for insert to authenticated with check (public.is_authenticated_staff());
-
--- Record stock movements (a sale decrements stock via the ledger).
-create policy staff_read_moves on public.inventory_movements
-  for select to authenticated using (public.is_authenticated_staff());
-create policy staff_insert_moves on public.inventory_movements
   for insert to authenticated with check (public.is_authenticated_staff());
 
 -- Voiding/updating a bill is allowed for staff who created it; deletes are not

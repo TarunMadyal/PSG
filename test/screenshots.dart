@@ -75,18 +75,14 @@ void main() {
   }
 
   Future<void> seedCatalog() async {
-    final repo = ProductRepositoryImpl(
-      db: db,
-      productsDao: db.productsDao,
-      inventoryDao: db.inventoryDao,
-    );
+    final repo = ProductRepositoryImpl(productsDao: db.productsDao);
     final items = <List<dynamic>>[
-      ['Cotton Formal Shirt', 'Raymond', 'M', 'White', 1299.0, 24, 5],
-      ['Slim Fit Jeans', 'Levis', '32', 'Blue', 2499.0, 12, 4],
-      ['Silk Saree', 'Nalli', 'Free', 'Maroon', 4999.0, 3, 5],
-      ['Kids T-Shirt', 'Gini', '8Y', 'Yellow', 499.0, 40, 10],
-      ['Woollen Sweater', 'Monte', 'L', 'Grey', 1899.0, 2, 6],
-      ['Cotton Kurta', 'Fabindia', 'XL', 'Beige', 1599.0, 15, 5],
+      ['Cotton Formal Shirt', 'Raymond', 'M', 'White', 1299.0],
+      ['Slim Fit Jeans', 'Levis', '32', 'Blue', 2499.0],
+      ['Silk Saree', 'Nalli', 'Free', 'Maroon', 4999.0],
+      ['Kids T-Shirt', 'Gini', '8Y', 'Yellow', 499.0],
+      ['Woollen Sweater', 'Monte', 'L', 'Grey', 1899.0],
+      ['Cotton Kurta', 'Fabindia', 'XL', 'Beige', 1599.0],
     ];
     for (final p in items) {
       await repo.save(
@@ -96,8 +92,6 @@ void main() {
           size: p[2] as String,
           color: p[3] as String,
           price: Money.fromRupees(p[4] as double),
-          stock: p[5] as int,
-          reorderLevel: p[6] as int,
         ),
       );
     }
@@ -181,6 +175,18 @@ void main() {
     await tester.tap(find.text('Products').first);
     await tester.pumpAndSettle();
     await shoot(tester, '04_products');
+    await teardown(tester);
+  });
+
+  testWidgets('05 settings', (tester) async {
+    await seedOwner();
+    await setTablet(tester);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await login(tester);
+    await tester.tap(find.text('Settings').first);
+    await tester.pumpAndSettle();
+    await shoot(tester, '05_settings');
     await teardown(tester);
   });
 }

@@ -17,7 +17,6 @@ void main() {
       expect(caps, contains(Capability.createBill));
       expect(caps, contains(Capability.printBill));
       expect(caps, contains(Capability.searchProducts));
-      expect(caps, contains(Capability.viewStock));
 
       // Denied
       expect(caps, isNot(contains(Capability.manageProducts)));

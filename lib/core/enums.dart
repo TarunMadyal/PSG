@@ -25,15 +25,6 @@ enum BillStatus {
   voided,
 }
 
-/// Reason for an entry in the append-only inventory ledger. `returned`/`adjust`
-/// avoid reserved words while staying readable.
-enum MovementReason {
-  sale,
-  returned,
-  adjust,
-  restock,
-}
-
 /// Operation type for a pending change in the local outbox (sync queue).
 enum OutboxOp {
   upsert,

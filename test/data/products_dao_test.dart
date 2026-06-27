@@ -27,8 +27,7 @@ void main() {
       id: id == null ? const Value.absent() : Value(id),
       name: name,
       pricePaise: const Value(129900), // ₹1,299.00
-      sku: const Value('SHIRT-001'),
-      barcode: const Value('8901234567890'),
+      brand: const Value('PSG'),
     );
   }
 
@@ -65,15 +64,14 @@ void main() {
       expect(await db.productsDao.getAll(), hasLength(1)); // not duplicated
     });
 
-    test('search matches name, sku and barcode (case-insensitive)', () async {
+    test('search matches name and brand (case-insensitive)', () async {
       await db.productsDao.save(sampleProduct(name: 'Blue Denim Jeans'));
       await db.productsDao.save(
         ProductsCompanion.insert(name: 'Red Saree', pricePaise: const Value(50000)),
       );
 
       expect(await db.productsDao.search('denim'), hasLength(1));
-      expect(await db.productsDao.search('SHIRT-001'), hasLength(1));
-      expect(await db.productsDao.search('8901234'), hasLength(1));
+      expect(await db.productsDao.search('psg'), hasLength(1)); // brand match
       expect(await db.productsDao.search('saree'), hasLength(1));
       expect(await db.productsDao.search('nonexistent'), isEmpty);
     });
@@ -109,11 +107,15 @@ void main() {
   });
 
   group('Schema', () {
-    test('enforces foreign keys (inventory needs a real product)', () async {
-      // PRAGMA foreign_keys is enabled in beforeOpen.
+    test('enforces foreign keys (a bill item needs a real bill)', () async {
+      // PRAGMA foreign_keys is enabled on the raw connection.
       await expectLater(
-        db.into(db.inventory).insert(
-              InventoryCompanion.insert(productId: 'ghost-product'),
+        db.into(db.billItems).insert(
+              BillItemsCompanion.insert(
+                billId: 'ghost-bill',
+                productId: 'ghost-product',
+                nameSnapshot: 'X',
+              ),
             ),
         throwsA(isA<Exception>()),
       );

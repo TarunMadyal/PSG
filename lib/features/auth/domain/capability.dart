@@ -7,13 +7,10 @@ enum Capability {
   createBill,
   printBill,
   searchProducts,
-  viewStock,
 
   // Owner-level
   manageProducts,
-  manageInventory,
   viewReports,
-  viewSensitiveReports,
   viewSalesHistory,
   manageSettings,
   manageUsers,
@@ -25,7 +22,6 @@ const Set<Capability> _staffCapabilities = {
   Capability.createBill,
   Capability.printBill,
   Capability.searchProducts,
-  Capability.viewStock,
 };
 
 /// The capabilities granted to a [role]. Owner gets everything.

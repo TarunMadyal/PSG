@@ -8,10 +8,10 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/enums.dart';
 import 'daos/bills_dao.dart';
 import 'daos/customers_dao.dart';
-import 'daos/inventory_dao.dart';
 import 'daos/outbox_dao.dart';
 import 'daos/products_dao.dart';
 import 'daos/reports_dao.dart';
+import 'daos/settings_dao.dart';
 import 'daos/users_dao.dart';
 import 'tables/sync_columns.dart';
 import 'tables/tables.dart';
@@ -25,8 +25,6 @@ part 'app_database.g.dart';
     Users,
     AppSettings,
     Products,
-    Inventory,
-    InventoryMovements,
     Customers,
     Bills,
     BillItems,
@@ -37,10 +35,10 @@ part 'app_database.g.dart';
     ProductsDao,
     OutboxDao,
     UsersDao,
-    InventoryDao,
     BillsDao,
     CustomersDao,
     ReportsDao,
+    SettingsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -51,11 +49,20 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
+          await m.createAll();
+        },
+        onUpgrade: (m, from, to) async {
+          // The app is still pre-production: rather than carry per-version
+          // migrations, rebuild the schema from scratch on any upgrade. Cloud
+          // sync (when enabled) re-hydrates data, so this is safe here.
+          for (final table in allTables.toList().reversed) {
+            await m.deleteTable(table.actualTableName);
+          }
           await m.createAll();
         },
         // Note: FK enforcement is enabled via the raw-connection `setup`

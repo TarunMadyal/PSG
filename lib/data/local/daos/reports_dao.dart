@@ -12,21 +12,10 @@ typedef SalesAggregate = ({int totalPaise, int discountPaise, int billCount});
 /// A top-selling product over a period.
 typedef BestSellerRow = ({String name, int qtySold, int revenuePaise});
 
-/// A product at or below its reorder level.
-typedef LowStockRow = ({String name, int stock, int reorderLevel});
-
-/// Inventory valuation across the active catalog.
-typedef InventoryValueRow = ({
-  int retailPaise,
-  int costPaise,
-  int productCount,
-  int totalUnits,
-});
-
 /// Read-only aggregate queries that power the Reports screen. Date filters use
 /// a half-open `[from, to)` range on `billed_at`; only completed, non-deleted
 /// bills count toward sales.
-@DriftAccessor(tables: [Bills, BillItems, Products, Inventory])
+@DriftAccessor(tables: [Bills, BillItems])
 class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   ReportsDao(super.db);
 
@@ -96,55 +85,5 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
           ),
         )
         .toList();
-  }
-
-  /// Active products at or below their reorder level, lowest first.
-  Future<List<LowStockRow>> lowStock({int limit = 50}) async {
-    final query = select(products).join([
-      innerJoin(inventory, inventory.productId.equalsExp(products.id)),
-    ])
-      ..where(
-        products.isDeleted.equals(false) &
-            products.isActive.equals(true) &
-            inventory.isDeleted.equals(false) &
-            inventory.qtyOnHand.isSmallerOrEqual(inventory.reorderLevel),
-      )
-      ..orderBy([OrderingTerm.asc(inventory.qtyOnHand)])
-      ..limit(limit);
-
-    final rows = await query.get();
-    return rows.map((r) {
-      final p = r.readTable(products);
-      final inv = r.readTable(inventory);
-      return (name: p.name, stock: inv.qtyOnHand, reorderLevel: inv.reorderLevel);
-    }).toList();
-  }
-
-  /// Inventory valuation at retail and cost across the active catalog.
-  Future<InventoryValueRow> inventoryValue() async {
-    final retail =
-        (inventory.qtyOnHand * products.pricePaise).sum();
-    final cost =
-        (inventory.qtyOnHand * products.costPaise).sum();
-    final units = inventory.qtyOnHand.sum();
-    final count = products.id.count();
-
-    final query = selectOnly(products).join([
-      innerJoin(inventory, inventory.productId.equalsExp(products.id)),
-    ])
-      ..addColumns([retail, cost, units, count])
-      ..where(
-        products.isDeleted.equals(false) &
-            products.isActive.equals(true) &
-            inventory.isDeleted.equals(false),
-      );
-
-    final row = await query.getSingle();
-    return (
-      retailPaise: row.read(retail) ?? 0,
-      costPaise: row.read(cost) ?? 0,
-      productCount: row.read(count) ?? 0,
-      totalUnits: row.read(units) ?? 0,
-    );
   }
 }

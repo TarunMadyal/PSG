@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/capability.dart';
@@ -60,7 +59,7 @@ class _CatalogBody extends ConsumerWidget {
             onChanged: (v) =>
                 ref.read(productSearchQueryProvider.notifier).state = v,
             decoration: const InputDecoration(
-              hintText: 'Search by name, brand, SKU or barcode',
+              hintText: 'Search by name, brand, size or colour',
               prefixIcon: Icon(Icons.search),
             ),
           ),
@@ -79,7 +78,7 @@ class _CatalogBody extends ConsumerWidget {
               gridDelegate:
                   const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 360,
-                mainAxisExtent: 132,
+                mainAxisExtent: 124,
                 crossAxisSpacing: AppSpacing.md,
                 mainAxisSpacing: AppSpacing.md,
               ),
@@ -177,55 +176,17 @@ class _ProductCard extends ConsumerWidget {
                       ),
                 ),
               const Spacer(),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.price.formatted,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: scheme.primary,
-                          ),
+              Text(
+                item.price.formatted,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  _StockBadge(item: item),
-                ],
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StockBadge extends StatelessWidget {
-  const _StockBadge({required this.item});
-
-  final ProductItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final low = item.isLowStock;
-    final color = low ? AppColors.warning : AppColors.success;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      ),
-      child: Text(
-        low ? 'Low · ${item.stock}' : 'In stock · ${item.stock}',
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );

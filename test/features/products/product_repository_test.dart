@@ -16,11 +16,7 @@ void main() {
         setup: (raw) => raw.execute('PRAGMA foreign_keys = ON;'),
       ),
     );
-    repo = ProductRepositoryImpl(
-      db: db,
-      productsDao: db.productsDao,
-      inventoryDao: db.inventoryDao,
-    );
+    repo = ProductRepositoryImpl(productsDao: db.productsDao);
   });
 
   tearDown(() async => db.close());
@@ -28,19 +24,16 @@ void main() {
   ProductDraft draft({
     String name = 'Cotton Shirt',
     double price = 1299,
-    int stock = 20,
   }) {
     return ProductDraft(
       name: name,
       price: Money.fromRupees(price),
-      stock: stock,
       brand: 'PSG',
       size: 'M',
-      sku: 'SH-1',
     );
   }
 
-  test('save creates a product with stock visible in the catalog', () async {
+  test('save creates a product visible in the catalog', () async {
     final result = await repo.save(draft());
     expect(result.isSuccess, isTrue);
 
@@ -48,7 +41,6 @@ void main() {
     expect(catalog, hasLength(1));
     expect(catalog.single.name, 'Cotton Shirt');
     expect(catalog.single.price, Money.fromRupees(1299));
-    expect(catalog.single.stock, 20);
     expect(catalog.single.attributesLabel, 'PSG · M');
   });
 
@@ -58,31 +50,15 @@ void main() {
     expect(await repo.watchCatalog().first, isEmpty);
   });
 
-  test('editing a product adjusts its stock via the ledger', () async {
-    await repo.save(draft(stock: 20));
+  test('editing a product updates it without duplicating', () async {
+    await repo.save(draft(price: 1299));
     final id = (await repo.watchCatalog().first).single.id;
 
-    await repo.save(draft(stock: 12), id: id);
+    await repo.save(draft(price: 999), id: id);
 
     final catalog = await repo.watchCatalog().first;
-    expect(catalog, hasLength(1)); // not duplicated
-    expect(catalog.single.stock, 12);
-
-    final moves = await db.select(db.inventoryMovements).get();
-    expect(moves, hasLength(2)); // initial + adjustment
-  });
-
-  test('low-stock flag reflects reorder level', () async {
-    await repo.save(
-      ProductDraft(
-        name: 'Socks',
-        price: Money.fromRupees(99),
-        stock: 3,
-        reorderLevel: 5,
-      ),
-    );
-    final item = (await repo.watchCatalog().first).single;
-    expect(item.isLowStock, isTrue);
+    expect(catalog, hasLength(1));
+    expect(catalog.single.price, Money.fromRupees(999));
   });
 
   test('delete removes the product from the catalog', () async {
@@ -94,10 +70,10 @@ void main() {
     expect(await repo.watchCatalog().first, isEmpty);
   });
 
-  test('search finds products by name and sku', () async {
+  test('search finds products by name and brand', () async {
     await repo.save(draft(name: 'Blue Jeans'));
     expect(await repo.search('jeans'), hasLength(1));
-    expect(await repo.search('SH-1'), hasLength(1));
+    expect(await repo.search('psg'), hasLength(1));
     expect(await repo.search('zzz'), isEmpty);
   });
 }

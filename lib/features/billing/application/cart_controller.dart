@@ -16,7 +16,7 @@ class CartController extends Notifier<Cart> {
   int _indexOf(String productId) =>
       state.lines.indexWhere((l) => l.productId == productId);
 
-  /// Adds a product, or increments it if already in the cart (respecting stock).
+  /// Adds a product, or increments it if already in the cart.
   void addProduct(ProductItem product) {
     final i = _indexOf(product.id);
     if (i >= 0) {
@@ -27,17 +27,12 @@ class CartController extends Notifier<Cart> {
       productId: product.id,
       name: product.name,
       unitPrice: product.price,
-      availableStock: product.stock,
     );
     state = state.copyWith(lines: [...state.lines, line]);
   }
 
   void increment(String productId) {
-    _updateLine(productId, (l) {
-      final max = l.availableStock;
-      if (max != null && l.qty >= max) return l;
-      return l.copyWith(qty: l.qty + 1);
-    });
+    _updateLine(productId, (l) => l.copyWith(qty: l.qty + 1));
   }
 
   void decrement(String productId) {
@@ -56,11 +51,7 @@ class CartController extends Notifier<Cart> {
       removeLine(productId);
       return;
     }
-    _updateLine(productId, (l) {
-      final max = l.availableStock;
-      final capped = (max != null && qty > max) ? max : qty;
-      return l.copyWith(qty: capped);
-    });
+    _updateLine(productId, (l) => l.copyWith(qty: qty));
   }
 
   void setLineDiscount(String productId, Money discount) {

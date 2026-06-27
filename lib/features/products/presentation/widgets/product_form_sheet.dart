@@ -45,17 +45,8 @@ class _ProductFormSheetState extends ConsumerState<_ProductFormSheet> {
       'brand': TextEditingController(text: e?.brand ?? ''),
       'size': TextEditingController(text: e?.size ?? ''),
       'color': TextEditingController(text: e?.color ?? ''),
-      'sku': TextEditingController(text: e?.sku ?? ''),
-      'barcode': TextEditingController(text: e?.barcode ?? ''),
       'price': TextEditingController(
         text: e == null ? '' : e.price.rupees.toStringAsFixed(2),
-      ),
-      'cost': TextEditingController(
-        text: e?.cost == null ? '' : e!.cost!.rupees.toStringAsFixed(2),
-      ),
-      'stock': TextEditingController(text: e == null ? '0' : '${e.stock}'),
-      'reorder': TextEditingController(
-        text: e == null ? '0' : '${e.reorderLevel}',
       ),
     };
   }
@@ -83,14 +74,7 @@ class _ProductFormSheetState extends ConsumerState<_ProductFormSheet> {
       brand: _t('brand'),
       size: _t('size'),
       color: _t('color'),
-      sku: _t('sku'),
-      barcode: _t('barcode'),
       price: Money.fromRupees(double.tryParse(_c['price']!.text.trim()) ?? 0),
-      cost: _t('cost') == null
-          ? null
-          : Money.fromRupees(double.parse(_c['cost']!.text.trim())),
-      stock: int.tryParse(_c['stock']!.text.trim()) ?? 0,
-      reorderLevel: int.tryParse(_c['reorder']!.text.trim()) ?? 0,
     );
 
     final result = await ref
@@ -139,15 +123,7 @@ class _ProductFormSheetState extends ConsumerState<_ProductFormSheet> {
                 _field('name', 'Product name', required: true),
                 _twoUp(_field('brand', 'Brand'), _field('category', 'Category')),
                 _twoUp(_field('size', 'Size'), _field('color', 'Colour')),
-                _twoUp(_field('sku', 'SKU'), _field('barcode', 'Barcode')),
-                _twoUp(
-                  _field('price', 'Price (₹)', number: true, required: true),
-                  _field('cost', 'Cost (₹)', number: true),
-                ),
-                _twoUp(
-                  _field('stock', 'Stock', integer: true),
-                  _field('reorder', 'Reorder at', integer: true),
-                ),
+                _field('price', 'Price (₹)', number: true, required: true),
                 const SizedBox(height: AppSpacing.xl),
                 FilledButton(
                   onPressed: _saving ? null : _save,

@@ -39,55 +39,13 @@ class BestSeller {
   final Money revenue;
 }
 
-/// A product at or below its reorder level.
-class LowStockItem {
-  const LowStockItem({
-    required this.name,
-    required this.stock,
-    required this.reorderLevel,
-  });
-
-  final String name;
-  final int stock;
-  final int reorderLevel;
-}
-
-/// Inventory valuation snapshot.
-class InventorySnapshot {
-  const InventorySnapshot({
-    required this.retailValue,
-    required this.costValue,
-    required this.productCount,
-    required this.totalUnits,
-  });
-
-  final Money retailValue;
-  final Money costValue;
-  final int productCount;
-  final int totalUnits;
-
-  /// Potential gross margin if everything in stock sold at current prices.
-  Money get potentialMargin => retailValue - costValue;
-
-  static const InventorySnapshot empty = InventorySnapshot(
-    retailValue: Money.zero,
-    costValue: Money.zero,
-    productCount: 0,
-    totalUnits: 0,
-  );
-}
-
 /// Everything the Reports dashboard shows for a selected range, fetched together.
 class ReportDashboard {
   const ReportDashboard({
     required this.sales,
     required this.bestSellers,
-    required this.lowStock,
-    required this.inventory,
   });
 
   final SalesSummary sales;
   final List<BestSeller> bestSellers;
-  final List<LowStockItem> lowStock;
-  final InventorySnapshot inventory;
 }

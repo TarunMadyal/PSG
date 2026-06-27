@@ -9,7 +9,6 @@ class CartLine {
     required this.unitPrice,
     this.qty = 1,
     this.discount = Money.zero,
-    this.availableStock,
   });
 
   final String productId;
@@ -19,10 +18,6 @@ class CartLine {
 
   /// Per-line discount amount.
   final Money discount;
-
-  /// Stock available when added, used to cap quantity in the UI (nullable when
-  /// stock isn't tracked for this line).
-  final int? availableStock;
 
   /// Price × quantity, before the line discount.
   Money get gross => unitPrice * qty;
@@ -39,7 +34,6 @@ class CartLine {
         unitPrice: unitPrice,
         qty: qty ?? this.qty,
         discount: discount ?? this.discount,
-        availableStock: availableStock,
       );
 }
 
