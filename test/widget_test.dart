@@ -58,6 +58,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  // Unmounts the app so Drift stream providers dispose, then flushes the
+  // zero-duration close timer Drift schedules — otherwise the test's fake-async
+  // reports "a Timer is still pending after the widget tree was disposed".
+  Future<void> disposeApp(WidgetTester tester) async {
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 10));
+  }
+
   testWidgets('fresh install shows first-run setup', (tester) async {
     await pumpTablet(tester);
     expect(find.text('Set up your shop'), findsOneWidget);
@@ -81,6 +89,8 @@ void main() {
     expect(find.text('Settings'), findsWidgets);
     expect(find.text('Reports'), findsWidgets);
     expect(find.text('Products'), findsWidgets);
+
+    await disposeApp(tester);
   });
 
   testWidgets('staff login hides owner-only navigation', (tester) async {
@@ -94,5 +104,7 @@ void main() {
     expect(find.text('Settings'), findsNothing);
     expect(find.text('Reports'), findsNothing);
     expect(find.text('Products'), findsNothing);
+
+    await disposeApp(tester);
   });
 }
