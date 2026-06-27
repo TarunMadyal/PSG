@@ -16,9 +16,9 @@ billing system — fast, reliable, and **safe against data loss**.
 | 3 | Authentication, PIN login, RBAC | ✅ Done |
 | 4 | Products (catalog + stock) | ✅ Done |
 | 5 | Billing (cart, discounts, checkout) | ✅ Done |
-| 6 | Printing (ESC/POS thermal) | ⏳ Next |
-| 7 | Reports | ⬜ |
-| 8 | Cloud sync | ⬜ |
+| 7 | Reports (sales, best sellers, low stock, inventory value) | ✅ Done |
+| 6 | Printing (ESC/POS thermal) | ⏸️ Deferred until printer hardware is available |
+| 8 | Cloud sync | ⏳ Next |
 | 9 | Testing & hardening | ⬜ |
 | 10 | Deployment (signed APK + OTA) | ⬜ |
 
