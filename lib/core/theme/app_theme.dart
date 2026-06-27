@@ -63,6 +63,7 @@ abstract final class AppTheme {
           textStyle: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            fontFamily: 'Roboto',
           ),
         ),
       ),
@@ -103,9 +104,11 @@ abstract final class AppTheme {
         selectedLabelTextStyle: TextStyle(
           color: scheme.onSurface,
           fontWeight: FontWeight.w600,
+          fontFamily: 'Roboto',
         ),
         unselectedLabelTextStyle: TextStyle(
           color: scheme.onSurfaceVariant,
+          fontFamily: 'Roboto',
         ),
       ),
       dividerTheme: DividerThemeData(

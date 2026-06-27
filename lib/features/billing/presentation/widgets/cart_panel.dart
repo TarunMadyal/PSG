@@ -141,6 +141,7 @@ class _CartPanelState extends ConsumerState<CartPanel> {
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
+                              fontFamily: 'Roboto',
                             ),
                           ),
                   ),
