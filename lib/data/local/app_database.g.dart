@@ -3183,8 +3183,8 @@ class $BillItemsTable extends BillItems
       const VerificationMeta('productId');
   @override
   late final GeneratedColumn<String> productId = GeneratedColumn<String>(
-      'product_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
+      'product_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _nameSnapshotMeta =
       const VerificationMeta('nameSnapshot');
   @override
@@ -3280,8 +3280,6 @@ class $BillItemsTable extends BillItems
     if (data.containsKey('product_id')) {
       context.handle(_productIdMeta,
           productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
-    } else if (isInserting) {
-      context.missing(_productIdMeta);
     }
     if (data.containsKey('name_snapshot')) {
       context.handle(
@@ -3335,7 +3333,7 @@ class $BillItemsTable extends BillItems
       billId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}bill_id'])!,
       productId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}product_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}product_id']),
       nameSnapshot: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name_snapshot'])!,
       qty: attachedDatabase.typeMapping
@@ -3363,7 +3361,7 @@ class BillItem extends DataClass implements Insertable<BillItem> {
   final bool isDeleted;
   final String? deviceId;
   final String billId;
-  final String productId;
+  final String? productId;
   final String nameSnapshot;
   final int qty;
   final int ratePaise;
@@ -3377,7 +3375,7 @@ class BillItem extends DataClass implements Insertable<BillItem> {
       required this.isDeleted,
       this.deviceId,
       required this.billId,
-      required this.productId,
+      this.productId,
       required this.nameSnapshot,
       required this.qty,
       required this.ratePaise,
@@ -3395,7 +3393,9 @@ class BillItem extends DataClass implements Insertable<BillItem> {
       map['device_id'] = Variable<String>(deviceId);
     }
     map['bill_id'] = Variable<String>(billId);
-    map['product_id'] = Variable<String>(productId);
+    if (!nullToAbsent || productId != null) {
+      map['product_id'] = Variable<String>(productId);
+    }
     map['name_snapshot'] = Variable<String>(nameSnapshot);
     map['qty'] = Variable<int>(qty);
     map['rate_paise'] = Variable<int>(ratePaise);
@@ -3415,7 +3415,9 @@ class BillItem extends DataClass implements Insertable<BillItem> {
           ? const Value.absent()
           : Value(deviceId),
       billId: Value(billId),
-      productId: Value(productId),
+      productId: productId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(productId),
       nameSnapshot: Value(nameSnapshot),
       qty: Value(qty),
       ratePaise: Value(ratePaise),
@@ -3435,7 +3437,7 @@ class BillItem extends DataClass implements Insertable<BillItem> {
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       deviceId: serializer.fromJson<String?>(json['deviceId']),
       billId: serializer.fromJson<String>(json['billId']),
-      productId: serializer.fromJson<String>(json['productId']),
+      productId: serializer.fromJson<String?>(json['productId']),
       nameSnapshot: serializer.fromJson<String>(json['nameSnapshot']),
       qty: serializer.fromJson<int>(json['qty']),
       ratePaise: serializer.fromJson<int>(json['ratePaise']),
@@ -3454,7 +3456,7 @@ class BillItem extends DataClass implements Insertable<BillItem> {
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'deviceId': serializer.toJson<String?>(deviceId),
       'billId': serializer.toJson<String>(billId),
-      'productId': serializer.toJson<String>(productId),
+      'productId': serializer.toJson<String?>(productId),
       'nameSnapshot': serializer.toJson<String>(nameSnapshot),
       'qty': serializer.toJson<int>(qty),
       'ratePaise': serializer.toJson<int>(ratePaise),
@@ -3471,7 +3473,7 @@ class BillItem extends DataClass implements Insertable<BillItem> {
           bool? isDeleted,
           Value<String?> deviceId = const Value.absent(),
           String? billId,
-          String? productId,
+          Value<String?> productId = const Value.absent(),
           String? nameSnapshot,
           int? qty,
           int? ratePaise,
@@ -3485,7 +3487,7 @@ class BillItem extends DataClass implements Insertable<BillItem> {
         isDeleted: isDeleted ?? this.isDeleted,
         deviceId: deviceId.present ? deviceId.value : this.deviceId,
         billId: billId ?? this.billId,
-        productId: productId ?? this.productId,
+        productId: productId.present ? productId.value : this.productId,
         nameSnapshot: nameSnapshot ?? this.nameSnapshot,
         qty: qty ?? this.qty,
         ratePaise: ratePaise ?? this.ratePaise,
@@ -3577,7 +3579,7 @@ class BillItemsCompanion extends UpdateCompanion<BillItem> {
   final Value<bool> isDeleted;
   final Value<String?> deviceId;
   final Value<String> billId;
-  final Value<String> productId;
+  final Value<String?> productId;
   final Value<String> nameSnapshot;
   final Value<int> qty;
   final Value<int> ratePaise;
@@ -3608,7 +3610,7 @@ class BillItemsCompanion extends UpdateCompanion<BillItem> {
     this.isDeleted = const Value.absent(),
     this.deviceId = const Value.absent(),
     required String billId,
-    required String productId,
+    this.productId = const Value.absent(),
     required String nameSnapshot,
     this.qty = const Value.absent(),
     this.ratePaise = const Value.absent(),
@@ -3616,7 +3618,6 @@ class BillItemsCompanion extends UpdateCompanion<BillItem> {
     this.amountPaise = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : billId = Value(billId),
-        productId = Value(productId),
         nameSnapshot = Value(nameSnapshot);
   static Insertable<BillItem> custom({
     Expression<String>? id,
@@ -3660,7 +3661,7 @@ class BillItemsCompanion extends UpdateCompanion<BillItem> {
       Value<bool>? isDeleted,
       Value<String?>? deviceId,
       Value<String>? billId,
-      Value<String>? productId,
+      Value<String?>? productId,
       Value<String>? nameSnapshot,
       Value<int>? qty,
       Value<int>? ratePaise,
@@ -4412,6 +4413,624 @@ class SyncStateCompanion extends UpdateCompanion<SyncStateData> {
   }
 }
 
+class $ComboShirtsTable extends ComboShirts
+    with TableInfo<$ComboShirtsTable, ComboShirt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ComboShirtsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      clientDefault: newId);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _pricePaiseMeta =
+      const VerificationMeta('pricePaise');
+  @override
+  late final GeneratedColumn<int> pricePaise = GeneratedColumn<int>(
+      'price_paise', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _isActiveMeta =
+      const VerificationMeta('isActive');
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+      'is_active', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, name, pricePaise, sortOrder, isActive];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'combo_shirts';
+  @override
+  VerificationContext validateIntegrity(Insertable<ComboShirt> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('price_paise')) {
+      context.handle(
+          _pricePaiseMeta,
+          pricePaise.isAcceptableOrUnknown(
+              data['price_paise']!, _pricePaiseMeta));
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(_isActiveMeta,
+          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ComboShirt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ComboShirt(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      pricePaise: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}price_paise'])!,
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+      isActive: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+    );
+  }
+
+  @override
+  $ComboShirtsTable createAlias(String alias) {
+    return $ComboShirtsTable(attachedDatabase, alias);
+  }
+}
+
+class ComboShirt extends DataClass implements Insertable<ComboShirt> {
+  final String id;
+  final String name;
+  final int pricePaise;
+  final int sortOrder;
+  final bool isActive;
+  const ComboShirt(
+      {required this.id,
+      required this.name,
+      required this.pricePaise,
+      required this.sortOrder,
+      required this.isActive});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['price_paise'] = Variable<int>(pricePaise);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['is_active'] = Variable<bool>(isActive);
+    return map;
+  }
+
+  ComboShirtsCompanion toCompanion(bool nullToAbsent) {
+    return ComboShirtsCompanion(
+      id: Value(id),
+      name: Value(name),
+      pricePaise: Value(pricePaise),
+      sortOrder: Value(sortOrder),
+      isActive: Value(isActive),
+    );
+  }
+
+  factory ComboShirt.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ComboShirt(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      pricePaise: serializer.fromJson<int>(json['pricePaise']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'pricePaise': serializer.toJson<int>(pricePaise),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'isActive': serializer.toJson<bool>(isActive),
+    };
+  }
+
+  ComboShirt copyWith(
+          {String? id,
+          String? name,
+          int? pricePaise,
+          int? sortOrder,
+          bool? isActive}) =>
+      ComboShirt(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        pricePaise: pricePaise ?? this.pricePaise,
+        sortOrder: sortOrder ?? this.sortOrder,
+        isActive: isActive ?? this.isActive,
+      );
+  ComboShirt copyWithCompanion(ComboShirtsCompanion data) {
+    return ComboShirt(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      pricePaise:
+          data.pricePaise.present ? data.pricePaise.value : this.pricePaise,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ComboShirt(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('pricePaise: $pricePaise, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isActive: $isActive')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, pricePaise, sortOrder, isActive);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ComboShirt &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.pricePaise == this.pricePaise &&
+          other.sortOrder == this.sortOrder &&
+          other.isActive == this.isActive);
+}
+
+class ComboShirtsCompanion extends UpdateCompanion<ComboShirt> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<int> pricePaise;
+  final Value<int> sortOrder;
+  final Value<bool> isActive;
+  final Value<int> rowid;
+  const ComboShirtsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.pricePaise = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ComboShirtsCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.pricePaise = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<ComboShirt> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<int>? pricePaise,
+    Expression<int>? sortOrder,
+    Expression<bool>? isActive,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (pricePaise != null) 'price_paise': pricePaise,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (isActive != null) 'is_active': isActive,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ComboShirtsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<int>? pricePaise,
+      Value<int>? sortOrder,
+      Value<bool>? isActive,
+      Value<int>? rowid}) {
+    return ComboShirtsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      pricePaise: pricePaise ?? this.pricePaise,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isActive: isActive ?? this.isActive,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (pricePaise.present) {
+      map['price_paise'] = Variable<int>(pricePaise.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ComboShirtsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('pricePaise: $pricePaise, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isActive: $isActive, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ComboPantsTable extends ComboPants
+    with TableInfo<$ComboPantsTable, ComboPant> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ComboPantsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      clientDefault: newId);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _pricePaiseMeta =
+      const VerificationMeta('pricePaise');
+  @override
+  late final GeneratedColumn<int> pricePaise = GeneratedColumn<int>(
+      'price_paise', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _isActiveMeta =
+      const VerificationMeta('isActive');
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+      'is_active', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, name, pricePaise, sortOrder, isActive];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'combo_pants';
+  @override
+  VerificationContext validateIntegrity(Insertable<ComboPant> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('price_paise')) {
+      context.handle(
+          _pricePaiseMeta,
+          pricePaise.isAcceptableOrUnknown(
+              data['price_paise']!, _pricePaiseMeta));
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(_isActiveMeta,
+          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ComboPant map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ComboPant(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      pricePaise: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}price_paise'])!,
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+      isActive: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+    );
+  }
+
+  @override
+  $ComboPantsTable createAlias(String alias) {
+    return $ComboPantsTable(attachedDatabase, alias);
+  }
+}
+
+class ComboPant extends DataClass implements Insertable<ComboPant> {
+  final String id;
+  final String name;
+  final int pricePaise;
+  final int sortOrder;
+  final bool isActive;
+  const ComboPant(
+      {required this.id,
+      required this.name,
+      required this.pricePaise,
+      required this.sortOrder,
+      required this.isActive});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['price_paise'] = Variable<int>(pricePaise);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['is_active'] = Variable<bool>(isActive);
+    return map;
+  }
+
+  ComboPantsCompanion toCompanion(bool nullToAbsent) {
+    return ComboPantsCompanion(
+      id: Value(id),
+      name: Value(name),
+      pricePaise: Value(pricePaise),
+      sortOrder: Value(sortOrder),
+      isActive: Value(isActive),
+    );
+  }
+
+  factory ComboPant.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ComboPant(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      pricePaise: serializer.fromJson<int>(json['pricePaise']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'pricePaise': serializer.toJson<int>(pricePaise),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'isActive': serializer.toJson<bool>(isActive),
+    };
+  }
+
+  ComboPant copyWith(
+          {String? id,
+          String? name,
+          int? pricePaise,
+          int? sortOrder,
+          bool? isActive}) =>
+      ComboPant(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        pricePaise: pricePaise ?? this.pricePaise,
+        sortOrder: sortOrder ?? this.sortOrder,
+        isActive: isActive ?? this.isActive,
+      );
+  ComboPant copyWithCompanion(ComboPantsCompanion data) {
+    return ComboPant(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      pricePaise:
+          data.pricePaise.present ? data.pricePaise.value : this.pricePaise,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ComboPant(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('pricePaise: $pricePaise, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isActive: $isActive')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, pricePaise, sortOrder, isActive);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ComboPant &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.pricePaise == this.pricePaise &&
+          other.sortOrder == this.sortOrder &&
+          other.isActive == this.isActive);
+}
+
+class ComboPantsCompanion extends UpdateCompanion<ComboPant> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<int> pricePaise;
+  final Value<int> sortOrder;
+  final Value<bool> isActive;
+  final Value<int> rowid;
+  const ComboPantsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.pricePaise = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ComboPantsCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.pricePaise = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<ComboPant> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<int>? pricePaise,
+    Expression<int>? sortOrder,
+    Expression<bool>? isActive,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (pricePaise != null) 'price_paise': pricePaise,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (isActive != null) 'is_active': isActive,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ComboPantsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<int>? pricePaise,
+      Value<int>? sortOrder,
+      Value<bool>? isActive,
+      Value<int>? rowid}) {
+    return ComboPantsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      pricePaise: pricePaise ?? this.pricePaise,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isActive: isActive ?? this.isActive,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (pricePaise.present) {
+      map['price_paise'] = Variable<int>(pricePaise.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ComboPantsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('pricePaise: $pricePaise, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isActive: $isActive, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4423,6 +5042,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BillItemsTable billItems = $BillItemsTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
   late final $SyncStateTable syncState = $SyncStateTable(this);
+  late final $ComboShirtsTable comboShirts = $ComboShirtsTable(this);
+  late final $ComboPantsTable comboPants = $ComboPantsTable(this);
   late final ProductsDao productsDao = ProductsDao(this as AppDatabase);
   late final OutboxDao outboxDao = OutboxDao(this as AppDatabase);
   late final UsersDao usersDao = UsersDao(this as AppDatabase);
@@ -4430,6 +5051,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final CustomersDao customersDao = CustomersDao(this as AppDatabase);
   late final ReportsDao reportsDao = ReportsDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
+  late final CombosDao combosDao = CombosDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4442,7 +5064,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         bills,
         billItems,
         outbox,
-        syncState
+        syncState,
+        comboShirts,
+        comboPants
       ];
 }
 
@@ -5880,7 +6504,7 @@ typedef $$BillItemsTableCreateCompanionBuilder = BillItemsCompanion Function({
   Value<bool> isDeleted,
   Value<String?> deviceId,
   required String billId,
-  required String productId,
+  Value<String?> productId,
   required String nameSnapshot,
   Value<int> qty,
   Value<int> ratePaise,
@@ -5896,7 +6520,7 @@ typedef $$BillItemsTableUpdateCompanionBuilder = BillItemsCompanion Function({
   Value<bool> isDeleted,
   Value<String?> deviceId,
   Value<String> billId,
-  Value<String> productId,
+  Value<String?> productId,
   Value<String> nameSnapshot,
   Value<int> qty,
   Value<int> ratePaise,
@@ -6084,7 +6708,7 @@ class $$BillItemsTableTableManager extends RootTableManager<
             Value<bool> isDeleted = const Value.absent(),
             Value<String?> deviceId = const Value.absent(),
             Value<String> billId = const Value.absent(),
-            Value<String> productId = const Value.absent(),
+            Value<String?> productId = const Value.absent(),
             Value<String> nameSnapshot = const Value.absent(),
             Value<int> qty = const Value.absent(),
             Value<int> ratePaise = const Value.absent(),
@@ -6116,7 +6740,7 @@ class $$BillItemsTableTableManager extends RootTableManager<
             Value<bool> isDeleted = const Value.absent(),
             Value<String?> deviceId = const Value.absent(),
             required String billId,
-            required String productId,
+            Value<String?> productId = const Value.absent(),
             required String nameSnapshot,
             Value<int> qty = const Value.absent(),
             Value<int> ratePaise = const Value.absent(),
@@ -6508,6 +7132,338 @@ typedef $$SyncStateTableProcessedTableManager = ProcessedTableManager<
     ),
     SyncStateData,
     PrefetchHooks Function()>;
+typedef $$ComboShirtsTableCreateCompanionBuilder = ComboShirtsCompanion
+    Function({
+  Value<String> id,
+  required String name,
+  Value<int> pricePaise,
+  Value<int> sortOrder,
+  Value<bool> isActive,
+  Value<int> rowid,
+});
+typedef $$ComboShirtsTableUpdateCompanionBuilder = ComboShirtsCompanion
+    Function({
+  Value<String> id,
+  Value<String> name,
+  Value<int> pricePaise,
+  Value<int> sortOrder,
+  Value<bool> isActive,
+  Value<int> rowid,
+});
+
+class $$ComboShirtsTableFilterComposer
+    extends Composer<_$AppDatabase, $ComboShirtsTable> {
+  $$ComboShirtsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get pricePaise => $composableBuilder(
+      column: $table.pricePaise, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnFilters(column));
+}
+
+class $$ComboShirtsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ComboShirtsTable> {
+  $$ComboShirtsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get pricePaise => $composableBuilder(
+      column: $table.pricePaise, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ComboShirtsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ComboShirtsTable> {
+  $$ComboShirtsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get pricePaise => $composableBuilder(
+      column: $table.pricePaise, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+}
+
+class $$ComboShirtsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ComboShirtsTable,
+    ComboShirt,
+    $$ComboShirtsTableFilterComposer,
+    $$ComboShirtsTableOrderingComposer,
+    $$ComboShirtsTableAnnotationComposer,
+    $$ComboShirtsTableCreateCompanionBuilder,
+    $$ComboShirtsTableUpdateCompanionBuilder,
+    (ComboShirt, BaseReferences<_$AppDatabase, $ComboShirtsTable, ComboShirt>),
+    ComboShirt,
+    PrefetchHooks Function()> {
+  $$ComboShirtsTableTableManager(_$AppDatabase db, $ComboShirtsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ComboShirtsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ComboShirtsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ComboShirtsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<int> pricePaise = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ComboShirtsCompanion(
+            id: id,
+            name: name,
+            pricePaise: pricePaise,
+            sortOrder: sortOrder,
+            isActive: isActive,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            required String name,
+            Value<int> pricePaise = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ComboShirtsCompanion.insert(
+            id: id,
+            name: name,
+            pricePaise: pricePaise,
+            sortOrder: sortOrder,
+            isActive: isActive,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ComboShirtsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ComboShirtsTable,
+    ComboShirt,
+    $$ComboShirtsTableFilterComposer,
+    $$ComboShirtsTableOrderingComposer,
+    $$ComboShirtsTableAnnotationComposer,
+    $$ComboShirtsTableCreateCompanionBuilder,
+    $$ComboShirtsTableUpdateCompanionBuilder,
+    (ComboShirt, BaseReferences<_$AppDatabase, $ComboShirtsTable, ComboShirt>),
+    ComboShirt,
+    PrefetchHooks Function()>;
+typedef $$ComboPantsTableCreateCompanionBuilder = ComboPantsCompanion Function({
+  Value<String> id,
+  required String name,
+  Value<int> pricePaise,
+  Value<int> sortOrder,
+  Value<bool> isActive,
+  Value<int> rowid,
+});
+typedef $$ComboPantsTableUpdateCompanionBuilder = ComboPantsCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<int> pricePaise,
+  Value<int> sortOrder,
+  Value<bool> isActive,
+  Value<int> rowid,
+});
+
+class $$ComboPantsTableFilterComposer
+    extends Composer<_$AppDatabase, $ComboPantsTable> {
+  $$ComboPantsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get pricePaise => $composableBuilder(
+      column: $table.pricePaise, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnFilters(column));
+}
+
+class $$ComboPantsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ComboPantsTable> {
+  $$ComboPantsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get pricePaise => $composableBuilder(
+      column: $table.pricePaise, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ComboPantsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ComboPantsTable> {
+  $$ComboPantsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get pricePaise => $composableBuilder(
+      column: $table.pricePaise, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+}
+
+class $$ComboPantsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ComboPantsTable,
+    ComboPant,
+    $$ComboPantsTableFilterComposer,
+    $$ComboPantsTableOrderingComposer,
+    $$ComboPantsTableAnnotationComposer,
+    $$ComboPantsTableCreateCompanionBuilder,
+    $$ComboPantsTableUpdateCompanionBuilder,
+    (ComboPant, BaseReferences<_$AppDatabase, $ComboPantsTable, ComboPant>),
+    ComboPant,
+    PrefetchHooks Function()> {
+  $$ComboPantsTableTableManager(_$AppDatabase db, $ComboPantsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ComboPantsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ComboPantsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ComboPantsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<int> pricePaise = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ComboPantsCompanion(
+            id: id,
+            name: name,
+            pricePaise: pricePaise,
+            sortOrder: sortOrder,
+            isActive: isActive,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            required String name,
+            Value<int> pricePaise = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ComboPantsCompanion.insert(
+            id: id,
+            name: name,
+            pricePaise: pricePaise,
+            sortOrder: sortOrder,
+            isActive: isActive,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ComboPantsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ComboPantsTable,
+    ComboPant,
+    $$ComboPantsTableFilterComposer,
+    $$ComboPantsTableOrderingComposer,
+    $$ComboPantsTableAnnotationComposer,
+    $$ComboPantsTableCreateCompanionBuilder,
+    $$ComboPantsTableUpdateCompanionBuilder,
+    (ComboPant, BaseReferences<_$AppDatabase, $ComboPantsTable, ComboPant>),
+    ComboPant,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6528,4 +7484,8 @@ class $AppDatabaseManager {
       $$OutboxTableTableManager(_db, _db.outbox);
   $$SyncStateTableTableManager get syncState =>
       $$SyncStateTableTableManager(_db, _db.syncState);
+  $$ComboShirtsTableTableManager get comboShirts =>
+      $$ComboShirtsTableTableManager(_db, _db.comboShirts);
+  $$ComboPantsTableTableManager get comboPants =>
+      $$ComboPantsTableTableManager(_db, _db.comboPants);
 }

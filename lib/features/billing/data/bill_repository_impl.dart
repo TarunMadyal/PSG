@@ -66,10 +66,13 @@ class BillRepositoryImpl implements BillRepository {
 
         final receiptLines = <ReceiptLine>[];
         for (final line in cart.lines) {
+          // Combo and random items have synthetic IDs — store null FK in DB.
+          final isReal = !line.productId.startsWith('combo_') &&
+              !line.productId.startsWith('random_');
           await _billsDao.insertItem(
             BillItemsCompanion.insert(
               billId: bill.id,
-              productId: line.productId,
+              productId: Value(isReal ? line.productId : null),
               nameSnapshot: line.name,
               qty: Value(line.qty),
               ratePaise: Value(line.unitPrice.paise),

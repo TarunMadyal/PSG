@@ -6,7 +6,9 @@ import '../../../core/theme/category_colors.dart';
 import '../../products/application/product_providers.dart';
 import '../../products/domain/product_item.dart';
 import '../application/cart_controller.dart';
+import 'widgets/amount_dialog.dart';
 import 'widgets/cart_panel.dart';
+import 'widgets/combo_picker_sheet.dart';
 
 /// Billing home — the shop's most-used screen. Catalog on the left, the live
 /// cart on the right (tablet); on a phone the cart opens as a sheet.
@@ -66,6 +68,7 @@ class _CatalogPane extends ConsumerWidget {
           ),
         ),
         const _CategoryFilterBar(),
+        const _SpecialActionsRow(),
         Expanded(
           child: catalog.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -238,6 +241,114 @@ class _ProductTile extends ConsumerWidget {
                   fontWeight: FontWeight.w800,
                   color: accent,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Combo and Random quick-add tiles — always visible above the product grid.
+class _SpecialActionsRow extends ConsumerWidget {
+  const _SpecialActionsRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _SpecialTile(
+              label: 'Combo',
+              subtitle: 'Shirt + Pant',
+              icon: Icons.style_outlined,
+              color: const Color(0xFF6A0DAD),
+              onTap: () => showComboPicker(context),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: _SpecialTile(
+              label: 'Random',
+              subtitle: 'Unlisted item',
+              icon: Icons.shuffle_outlined,
+              color: const Color(0xFFE65100),
+              onTap: () async {
+                final price = await promptAmount(
+                  context,
+                  title: 'Random item — enter price',
+                );
+                if (price != null && !price.isZero) {
+                  ref.read(cartProvider.notifier).addRandom(price);
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpecialTile extends StatelessWidget {
+  const _SpecialTile({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String label;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: color.withValues(alpha: 0.12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(width: AppSpacing.sm),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                      fontSize: 15,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: color.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

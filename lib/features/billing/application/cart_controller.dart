@@ -10,6 +10,9 @@ import '../domain/cart.dart';
 final cartProvider = NotifierProvider<CartController, Cart>(CartController.new);
 
 class CartController extends Notifier<Cart> {
+  int _syntheticCounter = 0;
+  String _nextId(String prefix) => '${prefix}_${++_syntheticCounter}';
+
   @override
   Cart build() => Cart.empty;
 
@@ -65,6 +68,31 @@ class CartController extends Notifier<Cart> {
     state = state.copyWith(
       lines: state.lines.where((l) => l.productId != productId).toList(),
     );
+  }
+
+  /// Adds a combo (shirt + pant) as a single "Combo" line. Price = shirt + pant.
+  void addCombo({
+    required String shirtName,
+    required Money shirtPrice,
+    required String pantName,
+    required Money pantPrice,
+  }) {
+    final line = CartLine(
+      productId: _nextId('combo'),
+      name: 'Combo',
+      unitPrice: shirtPrice + pantPrice,
+    );
+    state = state.copyWith(lines: [...state.lines, line]);
+  }
+
+  /// Adds an unlisted item printed as "Random" on the bill.
+  void addRandom(Money price) {
+    final line = CartLine(
+      productId: _nextId('random'),
+      name: 'Random',
+      unitPrice: price,
+    );
+    state = state.copyWith(lines: [...state.lines, line]);
   }
 
   void setBillDiscount(Money discount) {

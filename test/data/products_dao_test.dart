@@ -113,7 +113,7 @@ void main() {
         db.into(db.billItems).insert(
               BillItemsCompanion.insert(
                 billId: 'ghost-bill',
-                productId: 'ghost-product',
+                productId: const Value('ghost-product'),
                 nameSnapshot: 'X',
               ),
             ),

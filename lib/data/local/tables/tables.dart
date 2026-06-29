@@ -94,11 +94,36 @@ class Bills extends Table with SyncColumns {
       ];
 }
 
+/// Shirt options for combo billing. Owner-editable; seeded on first install.
+class ComboShirts extends Table {
+  TextColumn get id => text().clientDefault(newId)();
+  TextColumn get name => text()();
+  IntColumn get pricePaise => integer().withDefault(const Constant(0))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Pant options for combo billing. Owner-editable; seeded on first install.
+class ComboPants extends Table {
+  TextColumn get id => text().clientDefault(newId)();
+  TextColumn get name => text()();
+  IntColumn get pricePaise => integer().withDefault(const Constant(0))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 /// A single line item on a bill. `nameSnapshot`/`ratePaise` freeze the product
 /// details at sale time so history stays accurate if the product changes later.
 class BillItems extends Table with SyncColumns {
   TextColumn get billId => text()();
-  TextColumn get productId => text()();
+  // Nullable: combo and random items have no product in the catalog.
+  TextColumn get productId => text().nullable()();
   TextColumn get nameSnapshot => text()();
   IntColumn get qty => integer().withDefault(const Constant(1))();
   IntColumn get ratePaise => integer().withDefault(const Constant(0))();

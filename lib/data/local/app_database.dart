@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/enums.dart';
 import 'daos/bills_dao.dart';
+import 'daos/combos_dao.dart';
 import 'daos/customers_dao.dart';
 import 'daos/outbox_dao.dart';
 import 'daos/products_dao.dart';
@@ -30,6 +31,8 @@ part 'app_database.g.dart';
     BillItems,
     Outbox,
     SyncState,
+    ComboShirts,
+    ComboPants,
   ],
   daos: [
     ProductsDao,
@@ -39,6 +42,7 @@ part 'app_database.g.dart';
     CustomersDao,
     ReportsDao,
     SettingsDao,
+    CombosDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -49,12 +53,13 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
+          await combosDao.seedDefaults();
         },
         onUpgrade: (m, from, to) async {
           // The app is still pre-production: rather than carry per-version
@@ -64,6 +69,7 @@ class AppDatabase extends _$AppDatabase {
             await m.deleteTable(table.actualTableName);
           }
           await m.createAll();
+          await combosDao.seedDefaults();
         },
         // Note: FK enforcement is enabled via the raw-connection `setup`
         // callback (see `_openConnection`), not here — SQLite ignores
