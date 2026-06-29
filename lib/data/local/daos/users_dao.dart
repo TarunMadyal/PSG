@@ -26,6 +26,31 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
     return (select(users)..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
+  /// Live stream of all non-deleted users, name-sorted (for Settings → Users).
+  Stream<List<User>> watchAll() {
+    return (select(users)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([
+            (t) => OrderingTerm.asc(t.role),
+            (t) => OrderingTerm.asc(t.name),
+          ]))
+        .watch();
+  }
+
+  /// Activates or deactivates [userId] (soft toggle — does not delete).
+  Future<void> setActive(String userId, {required bool active}) async {
+    final existing = await getById(userId);
+    if (existing == null) return;
+    await save(
+      UsersCompanion(
+        id: Value(userId),
+        isActive: Value(active),
+        updatedAt: Value(DateTime.now().toUtc()),
+        version: Value(existing.version + 1),
+      ),
+    );
+  }
+
   /// Whether any account exists — drives the first-run owner setup flow.
   Future<bool> hasAny() async {
     final count = countAll();

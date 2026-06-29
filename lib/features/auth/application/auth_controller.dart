@@ -66,9 +66,43 @@ class AuthController extends Notifier<AuthState> {
     return result;
   }
 
+  /// Owner adds a new staff (or owner) account from the Users settings.
+  Future<Result<AppUser>> addUser({
+    required String name,
+    required String pin,
+    required bool isOwner,
+    String? phone,
+  }) =>
+      _repo.createUser(name: name, pin: pin, isOwner: isOwner, phone: phone);
+
+  /// Toggles a user's active flag (owner-only; caller checks capability).
+  Future<void> setUserActive(String userId, {required bool active}) async {
+    final db = ref.read(databaseProvider);
+    await db.usersDao.setActive(userId, active: active);
+  }
+
   /// Signs out — returns to the login screen (session is in-memory).
   void logout() => state = const AuthState.unauthenticated();
 }
+
+/// Live stream of all non-deleted users for the Settings → Users panel.
+final usersListProvider = StreamProvider<List<AppUser>>((ref) {
+  final db = ref.watch(databaseProvider);
+  return db.usersDao.watchAll().map(
+        (rows) => rows
+            .map(
+              (u) => AppUser(
+                id: u.id,
+                name: u.name,
+                role: u.role,
+                phone: u.phone,
+                email: u.email,
+                isActive: u.isActive,
+              ),
+            )
+            .toList(),
+      );
+});
 
 /// The currently signed-in user, or null.
 final currentUserProvider = Provider<AppUser?>(

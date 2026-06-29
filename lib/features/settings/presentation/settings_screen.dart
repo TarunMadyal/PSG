@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_spacing.dart';
+import '../../auth/application/auth_controller.dart';
+import '../../auth/domain/app_user.dart';
 import '../../printing/application/printing_providers.dart';
 import '../../printing/domain/printer_device.dart';
 import '../application/settings_providers.dart';
@@ -153,6 +156,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const _SectionTitle('Printer', icon: Icons.print_outlined),
             const SizedBox(height: AppSpacing.sm),
             _PrinterSection(profile: profile),
+            const Divider(height: AppSpacing.xxxl),
+            const _SectionTitle('Users', icon: Icons.people_outline),
+            const SizedBox(height: AppSpacing.sm),
+            const _UsersSection(),
           ],
         );
       },
@@ -345,6 +352,225 @@ class _PrinterPickerSheet extends ConsumerWidget {
                           ),
                       ],
                     ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Owner-only: lists all users and lets the owner add / deactivate staff.
+class _UsersSection extends ConsumerWidget {
+  const _UsersSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final usersAsync = ref.watch(usersListProvider);
+    final currentUser = ref.watch(currentUserProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'People who can log in to this device.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        usersAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('Could not load users: $e'),
+          data: (users) => Card(
+            child: Column(
+              children: [
+                for (final user in users)
+                  _UserTile(user: user, currentUserId: currentUser?.id),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        OutlinedButton.icon(
+          onPressed: () => showModalBottomSheet<void>(
+            context: context,
+            showDragHandle: true,
+            isScrollControlled: true,
+            builder: (_) => const _AddUserSheet(),
+          ),
+          icon: const Icon(Icons.person_add_outlined),
+          label: const Text('Add staff account'),
+        ),
+      ],
+    );
+  }
+}
+
+class _UserTile extends ConsumerWidget {
+  const _UserTile({required this.user, required this.currentUserId});
+
+  final AppUser user;
+  final String? currentUserId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isMe = user.id == currentUserId;
+    final scheme = Theme.of(context).colorScheme;
+
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: user.isOwner ? scheme.primaryContainer : scheme.secondaryContainer,
+        child: Text(
+          user.initials,
+          style: TextStyle(
+            color: user.isOwner ? scheme.onPrimaryContainer : scheme.onSecondaryContainer,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
+        ),
+      ),
+      title: Text(
+        user.name + (isMe ? ' (you)' : ''),
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(user.isOwner ? 'Owner' : 'Staff'),
+      trailing: isMe
+          ? null
+          : Switch(
+              value: user.isActive,
+              onChanged: (active) async {
+                await ref
+                    .read(authControllerProvider.notifier)
+                    .setUserActive(user.id, active: active);
+              },
+            ),
+    );
+  }
+}
+
+/// Bottom sheet form to add a new staff or owner account.
+class _AddUserSheet extends ConsumerStatefulWidget {
+  const _AddUserSheet();
+
+  @override
+  ConsumerState<_AddUserSheet> createState() => _AddUserSheetState();
+}
+
+class _AddUserSheetState extends ConsumerState<_AddUserSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameFocus = FocusNode();
+  final _name = TextEditingController();
+  final _pin = TextEditingController();
+  bool _isOwner = false;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _pin.dispose();
+    _nameFocus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    final result = await ref.read(authControllerProvider.notifier).addUser(
+          name: _name.text.trim(),
+          pin: _pin.text,
+          isOwner: _isOwner,
+        );
+
+    if (!mounted) return;
+
+    result.fold(
+      (_) => Navigator.of(context).pop(),
+      (failure) => setState(() {
+        _saving = false;
+        _error = failure.message;
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Add account',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            TextFormField(
+              controller: _name,
+              focusNode: _nameFocus,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Full name'),
+              autofocus: true,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Name is required.' : null,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextFormField(
+              controller: _pin,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 6,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'PIN (4–6 digits)',
+                counterText: '',
+              ),
+              validator: (v) {
+                if (v == null || v.length < 4) {
+                  return 'PIN must be at least 4 digits.';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Owner access'),
+              subtitle: const Text('Can manage products, settings and reports.'),
+              value: _isOwner,
+              onChanged: (v) => setState(() => _isOwner = v),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            FilledButton.icon(
+              onPressed: _saving ? null : _submit,
+              icon: _saving
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.person_add_outlined),
+              label: const Text('Create account'),
             ),
           ],
         ),
