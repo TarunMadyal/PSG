@@ -38,17 +38,58 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
   }
 
   /// Activates or deactivates [userId] (soft toggle — does not delete).
-  Future<void> setActive(String userId, {required bool active}) async {
-    final existing = await getById(userId);
-    if (existing == null) return;
-    await save(
-      UsersCompanion(
-        id: Value(userId),
+  ///
+  /// Uses a partial UPDATE (not insertOrReplace) so required columns such as
+  /// name/role/pinHash are preserved.
+  Future<void> setActive(String userId, {required bool active}) {
+    return _patch(
+      userId,
+      (existing) => UsersCompanion(
         isActive: Value(active),
         updatedAt: Value(DateTime.now().toUtc()),
         version: Value(existing.version + 1),
       ),
     );
+  }
+
+  /// Renames a user (works for staff and owner). Trims and ignores blanks.
+  Future<void> rename(String userId, String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return _patch(
+      userId,
+      (existing) => UsersCompanion(
+        name: Value(trimmed),
+        updatedAt: Value(DateTime.now().toUtc()),
+        version: Value(existing.version + 1),
+      ),
+    );
+  }
+
+  /// Applies a partial update to a user and enqueues the change for sync.
+  Future<void> _patch(
+    String userId,
+    UsersCompanion Function(User existing) build,
+  ) {
+    return transaction(() async {
+      final existing = await getById(userId);
+      if (existing == null) return;
+
+      await (update(users)..where((t) => t.id.equals(userId)))
+          .write(build(existing));
+
+      final updated = await getById(userId);
+      if (updated != null) {
+        await into(outbox).insert(
+          OutboxCompanion.insert(
+            entityTable: users.actualTableName,
+            rowId: userId,
+            op: OutboxOp.upsert,
+            payload: Value(jsonEncode(_safeJson(updated))),
+          ),
+        );
+      }
+    });
   }
 
   /// Soft-deletes a user (recoverable) and enqueues the deletion for sync. The

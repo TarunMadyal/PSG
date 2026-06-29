@@ -65,6 +65,41 @@ class _ProductFormSheetState extends ConsumerState<_ProductFormSheet> {
     return v.isEmpty ? null : v;
   }
 
+  Future<void> _delete() async {
+    final existing = widget.existing;
+    if (existing == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete product?'),
+        content: Text('"${existing.name}" will be removed from the catalog.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    setState(() => _saving = true);
+    final result =
+        await ref.read(productRepositoryProvider).delete(existing.id);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    result.fold(
+      (_) => Navigator.of(context).pop(true),
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(failure.message)),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -137,6 +172,22 @@ class _ProductFormSheetState extends ConsumerState<_ProductFormSheet> {
                         )
                       : Text(isEdit ? 'Save changes' : 'Add product'),
                 ),
+                if (isEdit) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  TextButton.icon(
+                    onPressed: _saving ? null : _delete,
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    label: Text(
+                      'Delete product',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

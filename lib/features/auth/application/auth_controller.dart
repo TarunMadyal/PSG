@@ -82,6 +82,32 @@ class AuthController extends Notifier<AuthState> {
     await db.usersDao.setActive(userId, active: active);
   }
 
+  /// Renames any account, owner or staff (owner-only; caller checks capability).
+  /// If the renamed account is the one signed in, the session label updates too.
+  Future<Result<void>> renameUser(String userId, String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      return const Result.failure(ValidationFailure('Name is required.'));
+    }
+    final db = ref.read(databaseProvider);
+    await db.usersDao.rename(userId, trimmed);
+
+    final current = state.user;
+    if (current != null && current.id == userId) {
+      state = AuthState.authenticated(
+        AppUser(
+          id: current.id,
+          name: trimmed,
+          role: current.role,
+          phone: current.phone,
+          email: current.email,
+          isActive: current.isActive,
+        ),
+      );
+    }
+    return const Result.success(null);
+  }
+
   /// Removes a user account (owner-only). Refuses to delete the last owner so
   /// the shop can never be locked out.
   Future<Result<void>> deleteUser(String userId) async {

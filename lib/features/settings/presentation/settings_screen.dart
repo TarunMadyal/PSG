@@ -417,6 +417,7 @@ class _UserTile extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return ListTile(
+      onTap: () => _rename(context, ref),
       leading: CircleAvatar(
         backgroundColor: user.isOwner ? scheme.primaryContainer : scheme.secondaryContainer,
         child: Text(
@@ -432,7 +433,7 @@ class _UserTile extends ConsumerWidget {
         user.name + (isMe ? ' (you)' : ''),
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
-      subtitle: Text(user.isOwner ? 'Owner' : 'Staff'),
+      subtitle: Text('${user.isOwner ? 'Owner' : 'Staff'} · tap to rename'),
       trailing: isMe
           ? const Chip(label: Text('You'))
           : Row(
@@ -456,10 +457,48 @@ class _UserTile extends ConsumerWidget {
     );
   }
 
+  Future<void> _rename(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController(text: user.name);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Rename account'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (newName == null || !context.mounted) return;
+    final result = await ref
+        .read(authControllerProvider.notifier)
+        .renameUser(user.id, newName);
+    if (!context.mounted) return;
+    result.fold(
+      (_) {},
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(failure.message)),
+      ),
+    );
+  }
+
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Remove account?'),
         content: Text(
           '"${user.name}" will no longer be able to log in. Past bills they '
@@ -467,11 +506,11 @@ class _UserTile extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('Remove'),
           ),
         ],

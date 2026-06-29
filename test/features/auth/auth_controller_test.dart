@@ -131,6 +131,33 @@ void main() {
       expect(after.any((u) => u.id == owner.id), isTrue);
     });
 
+    test('deactivating then reactivating preserves the account', () async {
+      final notifier = container.read(authControllerProvider.notifier);
+      await notifier.addUser(name: 'Ravi', pin: '4321', isOwner: false);
+      var users = await notifier.loginableUsers();
+      final ravi = users.firstWhere((u) => u.name == 'Ravi');
+
+      await notifier.setUserActive(ravi.id, active: false);
+      users = await notifier.loginableUsers();
+      expect(users.any((u) => u.id == ravi.id), isFalse);
+
+      await notifier.setUserActive(ravi.id, active: true);
+      users = await notifier.loginableUsers();
+      final back = users.firstWhere((u) => u.id == ravi.id);
+      expect(back.name, 'Ravi');
+      expect(back.role, UserRole.staff);
+    });
+
+    test('owner can rename any account', () async {
+      final notifier = container.read(authControllerProvider.notifier);
+      final owner =
+          (await notifier.loginableUsers()).firstWhere((u) => u.name == 'Asha');
+      final result = await notifier.renameUser(owner.id, 'Asha Rao');
+      expect(result.isSuccess, isTrue);
+      final after = await notifier.loginableUsers();
+      expect(after.firstWhere((u) => u.id == owner.id).name, 'Asha Rao');
+    });
+
     test('deleting staff removes them from the login picker', () async {
       final notifier = container.read(authControllerProvider.notifier);
       await notifier.addUser(name: 'Ravi', pin: '4321', isOwner: false);
