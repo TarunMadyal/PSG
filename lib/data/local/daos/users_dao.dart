@@ -51,6 +51,32 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
     );
   }
 
+  /// Soft-deletes a user (recoverable) and enqueues the deletion for sync. The
+  /// account disappears from the login screen and the users list.
+  Future<void> softDelete(String id) {
+    return transaction(() async {
+      final existing = await getById(id);
+      if (existing == null) return;
+
+      await (update(users)..where((t) => t.id.equals(id))).write(
+        UsersCompanion(
+          isDeleted: const Value(true),
+          isActive: const Value(false),
+          updatedAt: Value(DateTime.now().toUtc()),
+          version: Value(existing.version + 1),
+        ),
+      );
+
+      await into(outbox).insert(
+        OutboxCompanion.insert(
+          entityTable: users.actualTableName,
+          rowId: id,
+          op: OutboxOp.delete,
+        ),
+      );
+    });
+  }
+
   /// Whether any account exists — drives the first-run owner setup flow.
   Future<bool> hasAny() async {
     final count = countAll();

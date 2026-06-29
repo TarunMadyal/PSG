@@ -5,6 +5,8 @@ import '../../../core/error/failure.dart';
 import '../../../core/error/result.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../billing/domain/bill_receipt.dart';
+import '../../reports/domain/report_models.dart';
+import '../../reports/domain/report_range.dart';
 import '../../settings/domain/shop_profile.dart';
 import '../domain/printer_device.dart';
 import 'receipt_builder.dart';
@@ -45,6 +47,18 @@ class PrinterService {
   /// Prints a short test page to confirm the printer is working.
   Future<Result<void>> testPrint(ShopProfile shop) {
     return _printBytes(shop, () => _builder.buildTestPage(shop));
+  }
+
+  /// Prints a sales report for the given range (owner).
+  Future<Result<void>> printReport(
+    ReportDashboard data,
+    ReportRange range,
+    ShopProfile shop,
+  ) {
+    return _printBytes(
+      shop,
+      () => _builder.buildReport(data, range, shop, DateTime.now()),
+    );
   }
 
   Future<Result<void>> _printBytes(

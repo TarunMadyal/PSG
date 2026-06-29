@@ -32,6 +32,13 @@ const List<PosDestination> kPosDestinations = [
     requiredCapability: Capability.createBill,
   ),
   PosDestination(
+    path: '/categories',
+    label: 'Categories',
+    icon: Icons.category_outlined,
+    selectedIcon: Icons.category,
+    requiredCapability: Capability.searchProducts,
+  ),
+  PosDestination(
     path: '/products',
     label: 'Products',
     icon: Icons.checkroom_outlined,

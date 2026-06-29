@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/category_colors.dart';
 import '../../products/application/product_providers.dart';
 import '../../products/domain/product_item.dart';
 import '../application/cart_controller.dart';
@@ -64,6 +65,7 @@ class _CatalogPane extends ConsumerWidget {
             ),
           ),
         ),
+        const _CategoryFilterBar(),
         Expanded(
           child: catalog.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -72,6 +74,88 @@ class _CatalogPane extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Horizontal, colour-coded category chips. Tapping "Shirts" shows only shirts —
+/// a fast, visual way for staff to find what to bill.
+class _CategoryFilterBar extends ConsumerWidget {
+  const _CategoryFilterBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categories = ref.watch(catalogCategoriesProvider);
+    final selected = ref.watch(selectedCategoryProvider);
+    if (categories.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        children: [
+          _Chip(
+            label: 'All',
+            color: Theme.of(context).colorScheme.primary,
+            selected: selected == null,
+            onTap: () =>
+                ref.read(selectedCategoryProvider.notifier).state = null,
+          ),
+          for (final c in categories)
+            _Chip(
+              label: c,
+              color: CategoryColors.accent(c),
+              selected: selected == c,
+              onTap: () =>
+                  ref.read(selectedCategoryProvider.notifier).state = c,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.sm),
+      child: Center(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: selected ? color : color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -119,9 +203,11 @@ class _ProductTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
+    final accent = CategoryColors.accent(item.category);
 
     return Card(
+      color: CategoryColors.background(item.category),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => ref.read(cartProvider.notifier).addProduct(item),
         child: Padding(
@@ -133,23 +219,24 @@ class _ProductTile extends ConsumerWidget {
                 item.name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
               ),
               if (item.attributesLabel.isNotEmpty)
                 Text(
                   item.attributesLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                  style: const TextStyle(color: Colors.black54, fontSize: 12),
                 ),
               const Spacer(),
               Text(
                 item.price.formatted,
                 style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: scheme.primary,
+                  fontWeight: FontWeight.w800,
+                  color: accent,
                 ),
               ),
             ],

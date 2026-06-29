@@ -7,6 +7,7 @@ import '../../../core/utils/money.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/daos/bills_dao.dart';
 import '../../../data/local/daos/customers_dao.dart';
+import '../../../data/local/daos/users_dao.dart';
 import '../domain/bill_receipt.dart';
 import '../domain/cart.dart';
 import '../domain/bill_repository.dart';
@@ -19,13 +20,16 @@ class BillRepositoryImpl implements BillRepository {
     required AppDatabase db,
     required BillsDao billsDao,
     required CustomersDao customersDao,
+    required UsersDao usersDao,
   })  : _db = db,
         _billsDao = billsDao,
-        _customersDao = customersDao;
+        _customersDao = customersDao,
+        _usersDao = usersDao;
 
   final AppDatabase _db;
   final BillsDao _billsDao;
   final CustomersDao _customersDao;
+  final UsersDao _usersDao;
 
   @override
   Future<Result<BillReceipt>> checkout({
@@ -39,12 +43,13 @@ class BillRepositoryImpl implements BillRepository {
 
     try {
       final receipt = await _db.transaction(() async {
-        final customerId = await _customersDao.upsertByPhone(
+        final invoiceNo = await _billsDao.nextInvoiceNo();
+
+        final customerId = await _customersDao.resolveForSale(
           name: cart.customerName,
           phone: cart.customerPhone,
+          walkInRef: 'Walk-in $invoiceNo',
         );
-
-        final invoiceNo = await _billsDao.nextInvoiceNo();
 
         final bill = await _billsDao.insertBill(
           BillsCompanion.insert(
@@ -107,6 +112,47 @@ class BillRepositoryImpl implements BillRepository {
         StorageFailure('Could not complete the sale. Please try again.'),
       );
     }
+  }
+
+  @override
+  Future<BillReceipt?> receiptFor(String billId) async {
+    final data = await _billsDao.getWithItems(billId);
+    if (data == null) return null;
+    final bill = data.bill;
+
+    final cashier = await _usersDao.getById(bill.cashierId);
+    String? customerName;
+    String? customerPhone;
+    if (bill.customerId != null) {
+      final c = await _customersDao.getById(bill.customerId!);
+      customerName = c?.name;
+      customerPhone = c?.phone;
+    }
+
+    return BillReceipt(
+      id: bill.id,
+      invoiceNo: bill.invoiceNo,
+      billedAt: bill.billedAt,
+      cashierName: cashier?.name ?? '',
+      lines: data.items
+          .map(
+            (it) => ReceiptLine(
+              name: it.nameSnapshot,
+              qty: it.qty,
+              unitPrice: Money(it.ratePaise),
+              discount: Money(it.discountPaise),
+              amount: Money(it.amountPaise),
+            ),
+          )
+          .toList(),
+      subtotal: Money(bill.subtotalPaise),
+      discount: Money(bill.discountPaise),
+      gst: Money(bill.gstPaise),
+      grandTotal: Money(bill.grandTotalPaise),
+      paymentMethod: bill.paymentMethod,
+      customerName: customerName,
+      customerPhone: customerPhone,
+    );
   }
 
   @override

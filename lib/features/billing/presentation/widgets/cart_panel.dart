@@ -365,7 +365,10 @@ class _CustomerFieldState extends ConsumerState<_CustomerField> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_expanded && widget.cart.customerPhone == null) {
+    final hasCustomer = widget.cart.customerPhone != null ||
+        widget.cart.customerName != null;
+
+    if (!_expanded && !hasCustomer) {
       return Align(
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
@@ -382,19 +385,32 @@ class _CustomerFieldState extends ConsumerState<_CustomerField> {
         AppSpacing.lg,
         0,
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: TextField(
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Customer phone',
-                isDense: true,
-              ),
-              onChanged: (v) => ref
-                  .read(cartProvider.notifier)
-                  .setCustomer(phone: v, name: widget.cart.customerName),
+          TextField(
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Customer name',
+              isDense: true,
+              prefixIcon: Icon(Icons.person_outline),
             ),
+            onChanged: (v) => ref.read(cartProvider.notifier).setCustomer(
+                  name: v,
+                  phone: widget.cart.customerPhone,
+                ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          TextField(
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Mobile number',
+              isDense: true,
+              prefixIcon: Icon(Icons.phone_outlined),
+            ),
+            onChanged: (v) => ref.read(cartProvider.notifier).setCustomer(
+                  name: widget.cart.customerName,
+                  phone: v,
+                ),
           ),
         ],
       ),

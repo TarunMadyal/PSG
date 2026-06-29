@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/category_colors.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/capability.dart';
 import '../application/product_providers.dart';
@@ -125,9 +126,11 @@ class _ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
+    final accent = CategoryColors.accent(item.category);
 
     return Card(
+      color: CategoryColors.background(item.category),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: canManage
             ? () => showProductFormSheet(context, existing: item)
@@ -139,14 +142,25 @@ class _ProductCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    margin: const EdgeInsets.only(right: AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
                   Expanded(
                     child: Text(
                       item.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                   if (canManage)
@@ -171,19 +185,18 @@ class _ProductCard extends ConsumerWidget {
                   item.attributesLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                  style: const TextStyle(color: Colors.black54, fontSize: 12),
                 ),
               const Spacer(),
               Text(
                 item.price.formatted,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: scheme.primary,
-                    ),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: accent,
+                ),
               ),
             ],
           ),

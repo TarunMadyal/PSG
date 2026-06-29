@@ -11,6 +11,7 @@ final billRepositoryProvider = Provider<BillRepository>((ref) {
     db: db,
     billsDao: db.billsDao,
     customersDao: db.customersDao,
+    usersDao: db.usersDao,
   );
 });
 

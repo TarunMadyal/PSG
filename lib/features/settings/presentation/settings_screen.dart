@@ -434,15 +434,58 @@ class _UserTile extends ConsumerWidget {
       ),
       subtitle: Text(user.isOwner ? 'Owner' : 'Staff'),
       trailing: isMe
-          ? null
-          : Switch(
-              value: user.isActive,
-              onChanged: (active) async {
-                await ref
-                    .read(authControllerProvider.notifier)
-                    .setUserActive(user.id, active: active);
-              },
+          ? const Chip(label: Text('You'))
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Switch(
+                  value: user.isActive,
+                  onChanged: (active) async {
+                    await ref
+                        .read(authControllerProvider.notifier)
+                        .setUserActive(user.id, active: active);
+                  },
+                ),
+                IconButton(
+                  tooltip: 'Remove account',
+                  icon: Icon(Icons.delete_outline, color: scheme.error),
+                  onPressed: () => _confirmDelete(context, ref),
+                ),
+              ],
             ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Remove account?'),
+        content: Text(
+          '"${user.name}" will no longer be able to log in. Past bills they '
+          'created are kept.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final result =
+        await ref.read(authControllerProvider.notifier).deleteUser(user.id);
+    if (!context.mounted) return;
+    result.fold(
+      (_) {},
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(failure.message)),
+      ),
     );
   }
 }

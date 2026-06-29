@@ -2,7 +2,10 @@ import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../billing/domain/bill_receipt.dart';
+import '../../reports/domain/report_models.dart';
+import '../../reports/domain/report_range.dart';
 import '../../settings/domain/shop_profile.dart';
+import 'logo_raster.dart';
 
 /// Turns a completed [BillReceipt] into ESC/POS bytes for a 58/80mm thermal
 /// printer, laid out as: shop name (logo) → address → bill details → totals →
@@ -23,17 +26,7 @@ class ReceiptBuilder {
     bytes.addAll(g.reset());
 
     // ── Header / logo ──────────────────────────────────────────────
-    bytes.addAll(
-      g.text(
-        shop.shopName,
-        styles: const PosStyles(
-          align: PosAlign.center,
-          bold: true,
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ),
-      ),
-    );
+    bytes.addAll(await _header(g, shop, paper));
     if (_has(shop.address)) {
       for (final line in shop.address!.trim().split('\n')) {
         bytes.addAll(g.text(line.trim(), styles: _center));
@@ -138,8 +131,99 @@ class ReceiptBuilder {
     return bytes;
   }
 
+  /// A sales report for the chosen period (owner). Prints the shop logo, the
+  /// period, the headline figures and the best-selling items.
+  Future<List<int>> buildReport(
+    ReportDashboard data,
+    ReportRange range,
+    ShopProfile shop,
+    DateTime generatedAt,
+  ) async {
+    final profile = await CapabilityProfile.load();
+    final paper = shop.receiptWidth == 58 ? PaperSize.mm58 : PaperSize.mm80;
+    final g = Generator(paper, profile);
+
+    final bytes = <int>[];
+    bytes.addAll(g.reset());
+    bytes.addAll(await _header(g, shop, paper));
+    bytes.addAll(g.hr());
+
+    bytes.addAll(
+      g.text(
+        '${range.label} sales report',
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+      ),
+    );
+    bytes.addAll(
+      g.text(
+        'Generated ${Formatters.dateTime(generatedAt)}',
+        styles: _center,
+      ),
+    );
+    bytes.addAll(g.hr());
+
+    final s = data.sales;
+    bytes.addAll(_kv(g, 'Total sales', s.totalSales.formattedPlain));
+    bytes.addAll(_kv(g, 'Bills', '${s.billCount}'));
+    bytes.addAll(_kv(g, 'Items sold', '${s.itemsSold}'));
+    bytes.addAll(_kv(g, 'Avg. bill', s.averageBill.formattedPlain));
+    bytes.addAll(_kv(g, 'Discounts', s.totalDiscount.formattedPlain));
+
+    if (data.bestSellers.isNotEmpty) {
+      bytes.addAll(g.hr());
+      bytes.addAll(g.text('Best sellers', styles: _boldLeft));
+      bytes.addAll(
+        g.row([
+          PosColumn(text: 'Item', width: 7, styles: _boldLeft),
+          PosColumn(text: 'Qty', width: 2, styles: _boldCenter),
+          PosColumn(text: 'Amt', width: 3, styles: _boldRight),
+        ]),
+      );
+      for (final b in data.bestSellers) {
+        bytes.addAll(
+          g.row([
+            PosColumn(text: b.name, width: 7),
+            PosColumn(text: '${b.qtySold}', width: 2, styles: _center),
+            PosColumn(text: b.revenue.formattedPlain, width: 3, styles: _right),
+          ]),
+        );
+      }
+    }
+
+    bytes.addAll(g.hr());
+    bytes.addAll(
+      _total(g, 'TOTAL  Rs', s.totalSales.formattedPlain, big: true),
+    );
+    bytes.addAll(g.feed(2));
+    bytes.addAll(g.cut());
+    return bytes;
+  }
+
   // ── helpers ──────────────────────────────────────────────────────
   static bool _has(String? s) => s != null && s.trim().isNotEmpty;
+
+  /// Prints the logo raster at the top; falls back to the shop name as bold text
+  /// if the logo asset can't be loaded.
+  Future<List<int>> _header(
+    Generator g,
+    ShopProfile shop,
+    PaperSize paper,
+  ) async {
+    final logo = await const LogoRaster()
+        .load(targetWidth: paper == PaperSize.mm58 ? 360 : 520);
+    if (logo != null) {
+      return g.imageRaster(logo, align: PosAlign.center);
+    }
+    return g.text(
+      shop.shopName,
+      styles: const PosStyles(
+        align: PosAlign.center,
+        bold: true,
+        height: PosTextSize.size2,
+        width: PosTextSize.size2,
+      ),
+    );
+  }
 
   static const PosStyles _center = PosStyles(align: PosAlign.center);
   static const PosStyles _right = PosStyles(align: PosAlign.right);

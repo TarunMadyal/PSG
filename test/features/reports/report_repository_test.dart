@@ -28,6 +28,7 @@ void main() {
       db: db,
       billsDao: db.billsDao,
       customersDao: db.customersDao,
+      usersDao: db.usersDao,
     );
     reports = ReportRepositoryImpl(db.reportsDao);
 

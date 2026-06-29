@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/category_colors.dart';
 import '../../../../core/utils/money.dart';
 import '../../application/product_providers.dart';
 import '../../domain/product_item.dart';
@@ -122,6 +123,7 @@ class _ProductFormSheetState extends ConsumerState<_ProductFormSheet> {
                 const SizedBox(height: AppSpacing.lg),
                 _field('name', 'Product name', required: true),
                 _twoUp(_field('brand', 'Brand'), _field('category', 'Category')),
+                _categorySuggestions(),
                 _twoUp(_field('size', 'Size'), _field('color', 'Colour')),
                 _field('price', 'Price (₹)', number: true, required: true),
                 const SizedBox(height: AppSpacing.xl),
@@ -139,6 +141,30 @@ class _ProductFormSheetState extends ConsumerState<_ProductFormSheet> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Quick-pick chips for categories already in use, so the same category name
+  /// (and therefore its colour) stays consistent across products.
+  Widget _categorySuggestions() {
+    final categories = ref.watch(catalogCategoriesProvider);
+    if (categories.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Wrap(
+        spacing: AppSpacing.sm,
+        runSpacing: AppSpacing.xs,
+        children: [
+          for (final c in categories)
+            ActionChip(
+              label: Text(c),
+              backgroundColor: CategoryColors.background(c),
+              side: BorderSide.none,
+              labelStyle: const TextStyle(color: Colors.black87),
+              onPressed: () => setState(() => _c['category']!.text = c),
+            ),
+        ],
       ),
     );
   }

@@ -45,6 +45,16 @@ class BillsDao extends DatabaseAccessor<AppDatabase> with _$BillsDaoMixin {
         .watch();
   }
 
+  /// A customer's bills, newest first (for the customer history screen).
+  Stream<List<Bill>> watchForCustomer(String customerId) {
+    return (select(bills)
+          ..where(
+            (t) => t.customerId.equals(customerId) & t.isDeleted.equals(false),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.billedAt)]))
+        .watch();
+  }
+
   Future<List<BillItem>> itemsFor(String billId) {
     return (select(billItems)..where((t) => t.billId.equals(billId))).get();
   }

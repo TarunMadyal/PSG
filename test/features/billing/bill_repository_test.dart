@@ -25,6 +25,7 @@ void main() {
       db: db,
       billsDao: db.billsDao,
       customersDao: db.customersDao,
+      usersDao: db.usersDao,
     );
     products = ProductRepositoryImpl(productsDao: db.productsDao);
 
@@ -143,6 +144,52 @@ void main() {
 
     final bill = (await db.select(db.bills).get()).single;
     expect(bill.customerId, customers.single.id);
+  });
+
+  test('an anonymous sale is still attributed to a walk-in customer', () async {
+    final p = await seed('P', 10);
+    await checkout(
+      cartOf([CartLine(productId: p.id, name: p.name, unitPrice: p.price)]),
+    );
+
+    final customers = await db.select(db.customers).get();
+    expect(customers, hasLength(1));
+    expect(customers.single.name, startsWith('Walk-in'));
+
+    final bill = (await db.select(db.bills).get()).single;
+    expect(bill.customerId, customers.single.id);
+  });
+
+  test('a returning phone number reuses the same customer', () async {
+    final p = await seed('P', 10);
+    final line = CartLine(productId: p.id, name: p.name, unitPrice: p.price);
+    await checkout(Cart(lines: [line], customerPhone: '9000090000'));
+    await checkout(Cart(lines: [line], customerPhone: '9000090000'));
+
+    final customers = await db.select(db.customers).get();
+    expect(customers, hasLength(1), reason: 'phone should dedupe the customer');
+  });
+
+  test('receiptFor rebuilds a saved bill for reprinting', () async {
+    final shirt = await seed('Shirt', 100);
+    await checkout(
+      cartOf([
+        CartLine(
+          productId: shirt.id,
+          name: shirt.name,
+          unitPrice: shirt.price,
+          qty: 2,
+        ),
+      ]),
+    );
+
+    final bill = (await db.select(db.bills).get()).single;
+    final receipt = await bills.receiptFor(bill.id);
+    expect(receipt, isNotNull);
+    expect(receipt!.invoiceNo, 'INV-00001');
+    expect(receipt.cashierName, 'Asha');
+    expect(receipt.lines, hasLength(1));
+    expect(receipt.grandTotal, Money.fromRupees(200));
   });
 
   test('watchRecent surfaces completed bills', () async {

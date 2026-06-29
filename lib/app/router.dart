@@ -8,6 +8,7 @@ import '../features/auth/domain/capability.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/setup_screen.dart';
 import '../features/billing/presentation/billing_screen.dart';
+import '../features/categories/presentation/categories_screen.dart';
 import '../features/customers/presentation/customers_screen.dart';
 import '../features/products/presentation/products_screen.dart';
 import '../features/reports/presentation/reports_screen.dart';
@@ -67,6 +68,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             AppShell(navigationShell: navigationShell),
         branches: [
           _branch('/billing', const BillingScreen()),
+          _branch('/categories', const CategoriesScreen()),
           _branch('/products', const ProductsScreen()),
           _branch('/customers', const CustomersScreen()),
           _branch('/reports', const ReportsScreen()),

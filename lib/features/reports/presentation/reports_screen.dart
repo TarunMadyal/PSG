@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../printing/application/printing_providers.dart';
+import '../../settings/application/settings_providers.dart';
 import '../application/report_providers.dart';
 import '../domain/report_models.dart';
 import '../domain/report_range.dart';
@@ -19,6 +21,13 @@ class ReportsScreen extends ConsumerWidget {
     final dashboard = ref.watch(reportDashboardProvider);
 
     return Scaffold(
+      floatingActionButton: dashboard.hasValue
+          ? FloatingActionButton.extended(
+              onPressed: () => _printReport(context, ref),
+              icon: const Icon(Icons.print_outlined),
+              label: Text('Print ${range.label.toLowerCase()} report'),
+            )
+          : null,
       body: Column(
         children: [
           Padding(
@@ -42,6 +51,29 @@ class ReportsScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _printReport(BuildContext context, WidgetRef ref) async {
+    final range = ref.read(selectedRangeProvider);
+    final data = ref.read(reportDashboardProvider).valueOrNull;
+    final messenger = ScaffoldMessenger.of(context);
+    if (data == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Report is still loading.')),
+      );
+      return;
+    }
+    final shop = await ref.read(settingsRepositoryProvider).get();
+    final result =
+        await ref.read(printerServiceProvider).printReport(data, range, shop);
+    result.fold(
+      (_) => messenger.showSnackBar(
+        const SnackBar(content: Text('Report sent to printer.')),
+      ),
+      (failure) => messenger.showSnackBar(
+        SnackBar(content: Text(failure.message)),
       ),
     );
   }

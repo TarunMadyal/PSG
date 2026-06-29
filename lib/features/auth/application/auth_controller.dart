@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/di/providers.dart';
 import '../../../core/enums.dart';
+import '../../../core/error/failure.dart';
 import '../../../core/error/result.dart';
 import '../data/auth_repository_impl.dart';
 import '../domain/app_user.dart';
@@ -79,6 +80,26 @@ class AuthController extends Notifier<AuthState> {
   Future<void> setUserActive(String userId, {required bool active}) async {
     final db = ref.read(databaseProvider);
     await db.usersDao.setActive(userId, active: active);
+  }
+
+  /// Removes a user account (owner-only). Refuses to delete the last owner so
+  /// the shop can never be locked out.
+  Future<Result<void>> deleteUser(String userId) async {
+    final db = ref.read(databaseProvider);
+    final user = await db.usersDao.getById(userId);
+    if (user == null) {
+      return const Result.failure(ValidationFailure('Account not found.'));
+    }
+    if (user.role == UserRole.owner) {
+      final owners = await db.usersDao.countByRole(UserRole.owner);
+      if (owners <= 1) {
+        return const Result.failure(
+          ValidationFailure('You cannot remove the only owner account.'),
+        );
+      }
+    }
+    await db.usersDao.softDelete(userId);
+    return const Result.success(null);
   }
 
   /// Signs out — returns to the login screen (session is in-memory).

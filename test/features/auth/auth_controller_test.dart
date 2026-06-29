@@ -108,5 +108,40 @@ void main() {
       container.read(authControllerProvider.notifier).logout();
       expect(container.read(authControllerProvider), isA<AuthUnauthenticated>());
     });
+
+    test('owner can add staff who then appear on the login picker', () async {
+      final notifier = container.read(authControllerProvider.notifier);
+      final result =
+          await notifier.addUser(name: 'Ravi', pin: '4321', isOwner: false);
+      expect(result.isSuccess, isTrue);
+
+      final users = await notifier.loginableUsers();
+      expect(users.map((u) => u.name), containsAll(['Asha', 'Ravi']));
+    });
+
+    test('cannot delete the only owner', () async {
+      final notifier = container.read(authControllerProvider.notifier);
+      final users = await notifier.loginableUsers();
+      final owner = users.firstWhere((u) => u.name == 'Asha');
+
+      final result = await notifier.deleteUser(owner.id);
+      expect(result.isFailure, isTrue);
+      // Still present.
+      final after = await notifier.loginableUsers();
+      expect(after.any((u) => u.id == owner.id), isTrue);
+    });
+
+    test('deleting staff removes them from the login picker', () async {
+      final notifier = container.read(authControllerProvider.notifier);
+      await notifier.addUser(name: 'Ravi', pin: '4321', isOwner: false);
+      var users = await notifier.loginableUsers();
+      final ravi = users.firstWhere((u) => u.name == 'Ravi');
+
+      final result = await notifier.deleteUser(ravi.id);
+      expect(result.isSuccess, isTrue);
+
+      users = await notifier.loginableUsers();
+      expect(users.any((u) => u.id == ravi.id), isFalse);
+    });
   });
 }

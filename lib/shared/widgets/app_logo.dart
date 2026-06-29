@@ -2,15 +2,48 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 
-/// Placeholder brand mark — a clean "PSG" monogram in a rounded tile.
+/// The PSG Padmashree Garments brand mark.
 ///
-/// The owner will provide a final logo asset; this keeps the UI looking
-/// finished in the meantime and is the single place to swap in the real image.
+/// Renders the real logo asset (`assets/logo/psg_mark.png`). If the asset can't
+/// be loaded for any reason, it falls back to a clean painted "PSG" monogram so
+/// the UI always looks finished.
+///
+/// To use your own exact logo, replace the PNG files in `assets/logo/` — no code
+/// change is needed.
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.size = 40, this.showWordmark = false});
 
   final double size;
+
+  /// When true, shows the full logo lockup (mark + "PADAMSHREE GARMENTS").
   final bool showWordmark;
+
+  @override
+  Widget build(BuildContext context) {
+    if (showWordmark) {
+      return Image.asset(
+        'assets/logo/psg_logo.png',
+        height: size * 2.1,
+        fit: BoxFit.contain,
+        errorBuilder: (context, _, __) => _Fallback(size: size, wordmark: true),
+      );
+    }
+    return Image.asset(
+      'assets/logo/psg_mark.png',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      errorBuilder: (context, _, __) => _Fallback(size: size, wordmark: false),
+    );
+  }
+}
+
+/// Painted fallback used only if the logo asset fails to load.
+class _Fallback extends StatelessWidget {
+  const _Fallback({required this.size, required this.wordmark});
+
+  final double size;
+  final bool wordmark;
 
   @override
   Widget build(BuildContext context) {
@@ -39,30 +72,19 @@ class AppLogo extends StatelessWidget {
       ),
     );
 
-    if (!showWordmark) return mark;
+    if (!wordmark) return mark;
 
-    return Row(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         mark,
-        const SizedBox(width: AppSpacing.md),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Padmashree Garments',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            Text(
-              'Point of Sale',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-            ),
-          ],
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          'PADAMSHREE GARMENTS',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5,
+              ),
         ),
       ],
     );
