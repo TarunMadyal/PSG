@@ -35,6 +35,25 @@ class AppSettings extends Table with SyncColumns {
   TextColumn get printerName => text().nullable()();
   TextColumn get printerAddress => text().nullable()();
 
+  /// GSTIN printed on bills (e.g. "29AEXPJ3122K1Z1"). Default seeded on first
+  /// run in [SettingsDao.get]; nullable so the owner can clear it.
+  TextColumn get gstNumber => text().nullable()();
+
+  /// Bills at or below this amount (in paise) print the GST number; bills
+  /// ABOVE it hide the GST number. Owner-editable. Default ₹10,000.
+  IntColumn get gstCashLimitPaise =>
+      integer().withDefault(const Constant(1000000))();
+
+  /// The shop's UPI ID (VPA) for the payment QR, e.g. "name@okbizaxis".
+  /// Default seeded on first run; nullable so the owner can clear it.
+  TextColumn get upiId => text().nullable()();
+
+  /// Payee name shown in the customer's UPI app when they scan the QR.
+  TextColumn get upiName => text().nullable()();
+
+  /// Whether to show / print the dynamic UPI payment QR on bills.
+  BoolColumn get showUpiQr => boolean().withDefault(const Constant(true))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

@@ -723,6 +723,41 @@ class $AppSettingsTable extends AppSettings
   late final GeneratedColumn<String> printerAddress = GeneratedColumn<String>(
       'printer_address', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _gstNumberMeta =
+      const VerificationMeta('gstNumber');
+  @override
+  late final GeneratedColumn<String> gstNumber = GeneratedColumn<String>(
+      'gst_number', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _gstCashLimitPaiseMeta =
+      const VerificationMeta('gstCashLimitPaise');
+  @override
+  late final GeneratedColumn<int> gstCashLimitPaise = GeneratedColumn<int>(
+      'gst_cash_limit_paise', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1000000));
+  static const VerificationMeta _upiIdMeta = const VerificationMeta('upiId');
+  @override
+  late final GeneratedColumn<String> upiId = GeneratedColumn<String>(
+      'upi_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _upiNameMeta =
+      const VerificationMeta('upiName');
+  @override
+  late final GeneratedColumn<String> upiName = GeneratedColumn<String>(
+      'upi_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _showUpiQrMeta =
+      const VerificationMeta('showUpiQr');
+  @override
+  late final GeneratedColumn<bool> showUpiQr = GeneratedColumn<bool>(
+      'show_upi_qr', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("show_upi_qr" IN (0, 1))'),
+      defaultValue: const Constant(true));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -737,7 +772,12 @@ class $AppSettingsTable extends AppSettings
         receiptWidth,
         footerText,
         printerName,
-        printerAddress
+        printerAddress,
+        gstNumber,
+        gstCashLimitPaise,
+        upiId,
+        upiName,
+        showUpiQr
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -808,6 +848,30 @@ class $AppSettingsTable extends AppSettings
           printerAddress.isAcceptableOrUnknown(
               data['printer_address']!, _printerAddressMeta));
     }
+    if (data.containsKey('gst_number')) {
+      context.handle(_gstNumberMeta,
+          gstNumber.isAcceptableOrUnknown(data['gst_number']!, _gstNumberMeta));
+    }
+    if (data.containsKey('gst_cash_limit_paise')) {
+      context.handle(
+          _gstCashLimitPaiseMeta,
+          gstCashLimitPaise.isAcceptableOrUnknown(
+              data['gst_cash_limit_paise']!, _gstCashLimitPaiseMeta));
+    }
+    if (data.containsKey('upi_id')) {
+      context.handle(
+          _upiIdMeta, upiId.isAcceptableOrUnknown(data['upi_id']!, _upiIdMeta));
+    }
+    if (data.containsKey('upi_name')) {
+      context.handle(_upiNameMeta,
+          upiName.isAcceptableOrUnknown(data['upi_name']!, _upiNameMeta));
+    }
+    if (data.containsKey('show_upi_qr')) {
+      context.handle(
+          _showUpiQrMeta,
+          showUpiQr.isAcceptableOrUnknown(
+              data['show_upi_qr']!, _showUpiQrMeta));
+    }
     return context;
   }
 
@@ -843,6 +907,16 @@ class $AppSettingsTable extends AppSettings
           .read(DriftSqlType.string, data['${effectivePrefix}printer_name']),
       printerAddress: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}printer_address']),
+      gstNumber: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}gst_number']),
+      gstCashLimitPaise: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}gst_cash_limit_paise'])!,
+      upiId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}upi_id']),
+      upiName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}upi_name']),
+      showUpiQr: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}show_upi_qr'])!,
     );
   }
 
@@ -872,6 +946,24 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
   /// The default Bluetooth thermal printer, saved after pairing in Settings.
   final String? printerName;
   final String? printerAddress;
+
+  /// GSTIN printed on bills (e.g. "29AEXPJ3122K1Z1"). Default seeded on first
+  /// run in [SettingsDao.get]; nullable so the owner can clear it.
+  final String? gstNumber;
+
+  /// Bills at or below this amount (in paise) print the GST number; bills
+  /// ABOVE it hide the GST number. Owner-editable. Default ₹10,000.
+  final int gstCashLimitPaise;
+
+  /// The shop's UPI ID (VPA) for the payment QR, e.g. "name@okbizaxis".
+  /// Default seeded on first run; nullable so the owner can clear it.
+  final String? upiId;
+
+  /// Payee name shown in the customer's UPI app when they scan the QR.
+  final String? upiName;
+
+  /// Whether to show / print the dynamic UPI payment QR on bills.
+  final bool showUpiQr;
   const AppSetting(
       {required this.id,
       required this.createdAt,
@@ -885,7 +977,12 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       required this.receiptWidth,
       this.footerText,
       this.printerName,
-      this.printerAddress});
+      this.printerAddress,
+      this.gstNumber,
+      required this.gstCashLimitPaise,
+      this.upiId,
+      this.upiName,
+      required this.showUpiQr});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -914,6 +1011,17 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     if (!nullToAbsent || printerAddress != null) {
       map['printer_address'] = Variable<String>(printerAddress);
     }
+    if (!nullToAbsent || gstNumber != null) {
+      map['gst_number'] = Variable<String>(gstNumber);
+    }
+    map['gst_cash_limit_paise'] = Variable<int>(gstCashLimitPaise);
+    if (!nullToAbsent || upiId != null) {
+      map['upi_id'] = Variable<String>(upiId);
+    }
+    if (!nullToAbsent || upiName != null) {
+      map['upi_name'] = Variable<String>(upiName);
+    }
+    map['show_upi_qr'] = Variable<bool>(showUpiQr);
     return map;
   }
 
@@ -943,6 +1051,16 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       printerAddress: printerAddress == null && nullToAbsent
           ? const Value.absent()
           : Value(printerAddress),
+      gstNumber: gstNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gstNumber),
+      gstCashLimitPaise: Value(gstCashLimitPaise),
+      upiId:
+          upiId == null && nullToAbsent ? const Value.absent() : Value(upiId),
+      upiName: upiName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(upiName),
+      showUpiQr: Value(showUpiQr),
     );
   }
 
@@ -963,6 +1081,11 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       footerText: serializer.fromJson<String?>(json['footerText']),
       printerName: serializer.fromJson<String?>(json['printerName']),
       printerAddress: serializer.fromJson<String?>(json['printerAddress']),
+      gstNumber: serializer.fromJson<String?>(json['gstNumber']),
+      gstCashLimitPaise: serializer.fromJson<int>(json['gstCashLimitPaise']),
+      upiId: serializer.fromJson<String?>(json['upiId']),
+      upiName: serializer.fromJson<String?>(json['upiName']),
+      showUpiQr: serializer.fromJson<bool>(json['showUpiQr']),
     );
   }
   @override
@@ -982,6 +1105,11 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       'footerText': serializer.toJson<String?>(footerText),
       'printerName': serializer.toJson<String?>(printerName),
       'printerAddress': serializer.toJson<String?>(printerAddress),
+      'gstNumber': serializer.toJson<String?>(gstNumber),
+      'gstCashLimitPaise': serializer.toJson<int>(gstCashLimitPaise),
+      'upiId': serializer.toJson<String?>(upiId),
+      'upiName': serializer.toJson<String?>(upiName),
+      'showUpiQr': serializer.toJson<bool>(showUpiQr),
     };
   }
 
@@ -998,7 +1126,12 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           int? receiptWidth,
           Value<String?> footerText = const Value.absent(),
           Value<String?> printerName = const Value.absent(),
-          Value<String?> printerAddress = const Value.absent()}) =>
+          Value<String?> printerAddress = const Value.absent(),
+          Value<String?> gstNumber = const Value.absent(),
+          int? gstCashLimitPaise,
+          Value<String?> upiId = const Value.absent(),
+          Value<String?> upiName = const Value.absent(),
+          bool? showUpiQr}) =>
       AppSetting(
         id: id ?? this.id,
         createdAt: createdAt ?? this.createdAt,
@@ -1014,6 +1147,11 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
         printerName: printerName.present ? printerName.value : this.printerName,
         printerAddress:
             printerAddress.present ? printerAddress.value : this.printerAddress,
+        gstNumber: gstNumber.present ? gstNumber.value : this.gstNumber,
+        gstCashLimitPaise: gstCashLimitPaise ?? this.gstCashLimitPaise,
+        upiId: upiId.present ? upiId.value : this.upiId,
+        upiName: upiName.present ? upiName.value : this.upiName,
+        showUpiQr: showUpiQr ?? this.showUpiQr,
       );
   AppSetting copyWithCompanion(AppSettingsCompanion data) {
     return AppSetting(
@@ -1036,6 +1174,13 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       printerAddress: data.printerAddress.present
           ? data.printerAddress.value
           : this.printerAddress,
+      gstNumber: data.gstNumber.present ? data.gstNumber.value : this.gstNumber,
+      gstCashLimitPaise: data.gstCashLimitPaise.present
+          ? data.gstCashLimitPaise.value
+          : this.gstCashLimitPaise,
+      upiId: data.upiId.present ? data.upiId.value : this.upiId,
+      upiName: data.upiName.present ? data.upiName.value : this.upiName,
+      showUpiQr: data.showUpiQr.present ? data.showUpiQr.value : this.showUpiQr,
     );
   }
 
@@ -1054,7 +1199,12 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           ..write('receiptWidth: $receiptWidth, ')
           ..write('footerText: $footerText, ')
           ..write('printerName: $printerName, ')
-          ..write('printerAddress: $printerAddress')
+          ..write('printerAddress: $printerAddress, ')
+          ..write('gstNumber: $gstNumber, ')
+          ..write('gstCashLimitPaise: $gstCashLimitPaise, ')
+          ..write('upiId: $upiId, ')
+          ..write('upiName: $upiName, ')
+          ..write('showUpiQr: $showUpiQr')
           ..write(')'))
         .toString();
   }
@@ -1073,7 +1223,12 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       receiptWidth,
       footerText,
       printerName,
-      printerAddress);
+      printerAddress,
+      gstNumber,
+      gstCashLimitPaise,
+      upiId,
+      upiName,
+      showUpiQr);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1090,7 +1245,12 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           other.receiptWidth == this.receiptWidth &&
           other.footerText == this.footerText &&
           other.printerName == this.printerName &&
-          other.printerAddress == this.printerAddress);
+          other.printerAddress == this.printerAddress &&
+          other.gstNumber == this.gstNumber &&
+          other.gstCashLimitPaise == this.gstCashLimitPaise &&
+          other.upiId == this.upiId &&
+          other.upiName == this.upiName &&
+          other.showUpiQr == this.showUpiQr);
 }
 
 class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
@@ -1107,6 +1267,11 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   final Value<String?> footerText;
   final Value<String?> printerName;
   final Value<String?> printerAddress;
+  final Value<String?> gstNumber;
+  final Value<int> gstCashLimitPaise;
+  final Value<String?> upiId;
+  final Value<String?> upiName;
+  final Value<bool> showUpiQr;
   final Value<int> rowid;
   const AppSettingsCompanion({
     this.id = const Value.absent(),
@@ -1122,6 +1287,11 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.footerText = const Value.absent(),
     this.printerName = const Value.absent(),
     this.printerAddress = const Value.absent(),
+    this.gstNumber = const Value.absent(),
+    this.gstCashLimitPaise = const Value.absent(),
+    this.upiId = const Value.absent(),
+    this.upiName = const Value.absent(),
+    this.showUpiQr = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AppSettingsCompanion.insert({
@@ -1138,6 +1308,11 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.footerText = const Value.absent(),
     this.printerName = const Value.absent(),
     this.printerAddress = const Value.absent(),
+    this.gstNumber = const Value.absent(),
+    this.gstCashLimitPaise = const Value.absent(),
+    this.upiId = const Value.absent(),
+    this.upiName = const Value.absent(),
+    this.showUpiQr = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   static Insertable<AppSetting> custom({
@@ -1154,6 +1329,11 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Expression<String>? footerText,
     Expression<String>? printerName,
     Expression<String>? printerAddress,
+    Expression<String>? gstNumber,
+    Expression<int>? gstCashLimitPaise,
+    Expression<String>? upiId,
+    Expression<String>? upiName,
+    Expression<bool>? showUpiQr,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1170,6 +1350,11 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       if (footerText != null) 'footer_text': footerText,
       if (printerName != null) 'printer_name': printerName,
       if (printerAddress != null) 'printer_address': printerAddress,
+      if (gstNumber != null) 'gst_number': gstNumber,
+      if (gstCashLimitPaise != null) 'gst_cash_limit_paise': gstCashLimitPaise,
+      if (upiId != null) 'upi_id': upiId,
+      if (upiName != null) 'upi_name': upiName,
+      if (showUpiQr != null) 'show_upi_qr': showUpiQr,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1188,6 +1373,11 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       Value<String?>? footerText,
       Value<String?>? printerName,
       Value<String?>? printerAddress,
+      Value<String?>? gstNumber,
+      Value<int>? gstCashLimitPaise,
+      Value<String?>? upiId,
+      Value<String?>? upiName,
+      Value<bool>? showUpiQr,
       Value<int>? rowid}) {
     return AppSettingsCompanion(
       id: id ?? this.id,
@@ -1203,6 +1393,11 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       footerText: footerText ?? this.footerText,
       printerName: printerName ?? this.printerName,
       printerAddress: printerAddress ?? this.printerAddress,
+      gstNumber: gstNumber ?? this.gstNumber,
+      gstCashLimitPaise: gstCashLimitPaise ?? this.gstCashLimitPaise,
+      upiId: upiId ?? this.upiId,
+      upiName: upiName ?? this.upiName,
+      showUpiQr: showUpiQr ?? this.showUpiQr,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1249,6 +1444,21 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     if (printerAddress.present) {
       map['printer_address'] = Variable<String>(printerAddress.value);
     }
+    if (gstNumber.present) {
+      map['gst_number'] = Variable<String>(gstNumber.value);
+    }
+    if (gstCashLimitPaise.present) {
+      map['gst_cash_limit_paise'] = Variable<int>(gstCashLimitPaise.value);
+    }
+    if (upiId.present) {
+      map['upi_id'] = Variable<String>(upiId.value);
+    }
+    if (upiName.present) {
+      map['upi_name'] = Variable<String>(upiName.value);
+    }
+    if (showUpiQr.present) {
+      map['show_upi_qr'] = Variable<bool>(showUpiQr.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1271,6 +1481,11 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
           ..write('footerText: $footerText, ')
           ..write('printerName: $printerName, ')
           ..write('printerAddress: $printerAddress, ')
+          ..write('gstNumber: $gstNumber, ')
+          ..write('gstCashLimitPaise: $gstCashLimitPaise, ')
+          ..write('upiId: $upiId, ')
+          ..write('upiName: $upiName, ')
+          ..write('showUpiQr: $showUpiQr, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5372,6 +5587,11 @@ typedef $$AppSettingsTableCreateCompanionBuilder = AppSettingsCompanion
   Value<String?> footerText,
   Value<String?> printerName,
   Value<String?> printerAddress,
+  Value<String?> gstNumber,
+  Value<int> gstCashLimitPaise,
+  Value<String?> upiId,
+  Value<String?> upiName,
+  Value<bool> showUpiQr,
   Value<int> rowid,
 });
 typedef $$AppSettingsTableUpdateCompanionBuilder = AppSettingsCompanion
@@ -5389,6 +5609,11 @@ typedef $$AppSettingsTableUpdateCompanionBuilder = AppSettingsCompanion
   Value<String?> footerText,
   Value<String?> printerName,
   Value<String?> printerAddress,
+  Value<String?> gstNumber,
+  Value<int> gstCashLimitPaise,
+  Value<String?> upiId,
+  Value<String?> upiName,
+  Value<bool> showUpiQr,
   Value<int> rowid,
 });
 
@@ -5440,6 +5665,22 @@ class $$AppSettingsTableFilterComposer
   ColumnFilters<String> get printerAddress => $composableBuilder(
       column: $table.printerAddress,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get gstNumber => $composableBuilder(
+      column: $table.gstNumber, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get gstCashLimitPaise => $composableBuilder(
+      column: $table.gstCashLimitPaise,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get upiId => $composableBuilder(
+      column: $table.upiId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get upiName => $composableBuilder(
+      column: $table.upiName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get showUpiQr => $composableBuilder(
+      column: $table.showUpiQr, builder: (column) => ColumnFilters(column));
 }
 
 class $$AppSettingsTableOrderingComposer
@@ -5491,6 +5732,22 @@ class $$AppSettingsTableOrderingComposer
   ColumnOrderings<String> get printerAddress => $composableBuilder(
       column: $table.printerAddress,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get gstNumber => $composableBuilder(
+      column: $table.gstNumber, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get gstCashLimitPaise => $composableBuilder(
+      column: $table.gstCashLimitPaise,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get upiId => $composableBuilder(
+      column: $table.upiId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get upiName => $composableBuilder(
+      column: $table.upiName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get showUpiQr => $composableBuilder(
+      column: $table.showUpiQr, builder: (column) => ColumnOrderings(column));
 }
 
 class $$AppSettingsTableAnnotationComposer
@@ -5540,6 +5797,21 @@ class $$AppSettingsTableAnnotationComposer
 
   GeneratedColumn<String> get printerAddress => $composableBuilder(
       column: $table.printerAddress, builder: (column) => column);
+
+  GeneratedColumn<String> get gstNumber =>
+      $composableBuilder(column: $table.gstNumber, builder: (column) => column);
+
+  GeneratedColumn<int> get gstCashLimitPaise => $composableBuilder(
+      column: $table.gstCashLimitPaise, builder: (column) => column);
+
+  GeneratedColumn<String> get upiId =>
+      $composableBuilder(column: $table.upiId, builder: (column) => column);
+
+  GeneratedColumn<String> get upiName =>
+      $composableBuilder(column: $table.upiName, builder: (column) => column);
+
+  GeneratedColumn<bool> get showUpiQr =>
+      $composableBuilder(column: $table.showUpiQr, builder: (column) => column);
 }
 
 class $$AppSettingsTableTableManager extends RootTableManager<
@@ -5578,6 +5850,11 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             Value<String?> footerText = const Value.absent(),
             Value<String?> printerName = const Value.absent(),
             Value<String?> printerAddress = const Value.absent(),
+            Value<String?> gstNumber = const Value.absent(),
+            Value<int> gstCashLimitPaise = const Value.absent(),
+            Value<String?> upiId = const Value.absent(),
+            Value<String?> upiName = const Value.absent(),
+            Value<bool> showUpiQr = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               AppSettingsCompanion(
@@ -5594,6 +5871,11 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             footerText: footerText,
             printerName: printerName,
             printerAddress: printerAddress,
+            gstNumber: gstNumber,
+            gstCashLimitPaise: gstCashLimitPaise,
+            upiId: upiId,
+            upiName: upiName,
+            showUpiQr: showUpiQr,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -5610,6 +5892,11 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             Value<String?> footerText = const Value.absent(),
             Value<String?> printerName = const Value.absent(),
             Value<String?> printerAddress = const Value.absent(),
+            Value<String?> gstNumber = const Value.absent(),
+            Value<int> gstCashLimitPaise = const Value.absent(),
+            Value<String?> upiId = const Value.absent(),
+            Value<String?> upiName = const Value.absent(),
+            Value<bool> showUpiQr = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               AppSettingsCompanion.insert(
@@ -5626,6 +5913,11 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             footerText: footerText,
             printerName: printerName,
             printerAddress: printerAddress,
+            gstNumber: gstNumber,
+            gstCashLimitPaise: gstCashLimitPaise,
+            upiId: upiId,
+            upiName: upiName,
+            showUpiQr: showUpiQr,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

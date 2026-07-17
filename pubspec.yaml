@@ -41,6 +41,9 @@ dependencies:
   # Image decode/resize for rasterising the logo onto the thermal bill
   image: ^4.2.0
 
+  # On-screen UPI payment QR (customer scans it from the tablet screen)
+  qr_flutter: ^4.1.0
+
   # Icons
   cupertino_icons: ^1.0.8
 

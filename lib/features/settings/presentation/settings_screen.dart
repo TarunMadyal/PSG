@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/money.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
 import '../../printing/application/printing_providers.dart';
@@ -25,7 +26,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _address = TextEditingController();
   final _phone = TextEditingController();
   final _footer = TextEditingController();
+  final _gstNumber = TextEditingController();
+  final _cashLimit = TextEditingController();
+  final _upiId = TextEditingController();
+  final _upiName = TextEditingController();
   int _receiptWidth = 80;
+  bool _printUpiQr = true;
 
   bool _loaded = false;
   bool _saving = false;
@@ -36,6 +42,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _address.dispose();
     _phone.dispose();
     _footer.dispose();
+    _gstNumber.dispose();
+    _cashLimit.dispose();
+    _upiId.dispose();
+    _upiName.dispose();
     super.dispose();
   }
 
@@ -46,12 +56,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _address.text = p.address ?? '';
     _phone.text = p.phone ?? '';
     _footer.text = p.footerText ?? '';
+    _gstNumber.text = p.gstNumber ?? '';
+    _cashLimit.text = p.gstCashLimit.rupees.toStringAsFixed(0);
+    _upiId.text = p.upiId ?? '';
+    _upiName.text = p.upiName ?? '';
     _receiptWidth = p.receiptWidth;
+    _printUpiQr = p.printUpiQr;
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
     final current = await ref.read(settingsRepositoryProvider).get();
+    final limit = double.tryParse(_cashLimit.text.trim()) ?? 10000;
     await ref.read(settingsRepositoryProvider).save(
           current.copyWith(
             shopName: _name.text.trim().isEmpty
@@ -61,6 +77,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             phone: _phone.text.trim(),
             footerText: _footer.text.trim(),
             receiptWidth: _receiptWidth,
+            gstNumber: _gstNumber.text.trim(),
+            gstCashLimit: Money.fromRupees(limit),
+            upiId: _upiId.text.trim(),
+            upiName: _upiName.text.trim(),
+            printUpiQr: _printUpiQr,
           ),
         );
     if (!mounted) return;
@@ -140,6 +161,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onSelectionChanged: (s) =>
                   setState(() => _receiptWidth = s.first),
             ),
+
+            const Divider(height: AppSpacing.xxxl),
+            const _SectionTitle('Tax / GST', icon: Icons.receipt_long_outlined),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'The GST number is printed on the bill only when the bill total is '
+              'at or below the cash limit. Bills above the limit hide it.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _gstNumber,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'GST number (GSTIN)',
+                hintText: '29AEXPJ3122K1Z1',
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _cashLimit,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Cash limit (₹)',
+                hintText: '10000',
+                prefixText: '₹ ',
+                helperText: 'Hide GST number on bills above this amount',
+              ),
+            ),
+
+            const Divider(height: AppSpacing.xxxl),
+            const _SectionTitle('UPI payment QR', icon: Icons.qr_code_2),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'A QR that fills in the exact bill amount when the customer scans '
+              'it with any UPI app (Google Pay, PhonePe, etc.). Shown on screen '
+              'and printed on the bill.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _upiId,
+              decoration: const InputDecoration(
+                labelText: 'UPI ID (VPA)',
+                hintText: '8123426350@okbizaxis',
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _upiName,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Payee name (optional)',
+                hintText: 'Defaults to shop name',
+              ),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Show payment QR on bills'),
+              value: _printUpiQr,
+              onChanged: (v) => setState(() => _printUpiQr = v),
+            ),
+
             const SizedBox(height: AppSpacing.lg),
             FilledButton.icon(
               onPressed: _saving ? null : _save,
@@ -150,7 +235,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save_outlined),
-              label: const Text('Save shop profile'),
+              label: const Text('Save settings'),
             ),
             const Divider(height: AppSpacing.xxxl),
             const _SectionTitle('Printer', icon: Icons.print_outlined),

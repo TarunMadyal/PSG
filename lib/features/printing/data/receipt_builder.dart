@@ -1,6 +1,7 @@
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/upi.dart';
 import '../../billing/domain/bill_receipt.dart';
 import '../../reports/domain/report_models.dart';
 import '../../reports/domain/report_range.dart';
@@ -40,7 +41,7 @@ class ReceiptBuilder {
 
     // ── Bill meta ──────────────────────────────────────────────────
     bytes.addAll(_kv(g, 'Invoice', receipt.invoiceNo));
-    bytes.addAll(_kv(g, 'Date', Formatters.dateTime(receipt.billedAt)));
+    bytes.addAll(_kv(g, 'Date', Formatters.receiptDateTime(receipt.billedAt)));
     bytes.addAll(_kv(g, 'Cashier', receipt.cashierName));
     if (_has(receipt.customerPhone)) {
       bytes.addAll(_kv(g, 'Customer', receipt.customerPhone!));
@@ -93,6 +94,26 @@ class ReceiptBuilder {
     bytes.addAll(_kv(g, 'Paid via', _payLabel(receipt)));
 
     bytes.addAll(g.hr());
+
+    // ── GST number (hidden once the bill exceeds the cash limit) ──────
+    if (shop.shouldPrintGst(receipt.grandTotal)) {
+      bytes.addAll(g.text('GSTIN: ${shop.gstNumber!.trim()}', styles: _boldCenter));
+      bytes.addAll(g.hr());
+    }
+
+    // ── UPI payment QR (auto-fills the amount when scanned) ───────────
+    if (shop.shouldShowUpiQr(receipt.grandTotal)) {
+      bytes.addAll(g.text('Scan & Pay with any UPI app', styles: _boldCenter));
+      final uri = buildUpiUri(
+        vpa: shop.upiId!.trim(),
+        payeeName: shop.upiPayeeName,
+        amount: receipt.grandTotal,
+        note: receipt.invoiceNo,
+      );
+      bytes.addAll(g.qrcode(uri, size: QRSize.size6));
+      bytes.addAll(g.text(shop.upiId!.trim(), styles: _center));
+      bytes.addAll(g.hr());
+    }
 
     // ── Footer ─────────────────────────────────────────────────────
     if (_has(shop.footerText)) {
@@ -239,21 +260,25 @@ class ReceiptBuilder {
       ]);
 
   List<int> _total(Generator g, String label, String value, {bool big = false}) {
+    // The big total uses double HEIGHT only (not double width) so a large
+    // amount like "1,88,888.00" can never overflow the paper and wrap onto the
+    // next line — the earlier bug where "2,050.00" split into "2,050.0" + "0".
     final style = big
         ? const PosStyles(
             align: PosAlign.right,
             bold: true,
             height: PosTextSize.size2,
-            width: PosTextSize.size2,
           )
         : _right;
     return g.row([
       PosColumn(
         text: label,
-        width: 6,
-        styles: big ? _boldLeft : const PosStyles(),
+        width: 5,
+        styles: big
+            ? const PosStyles(bold: true, height: PosTextSize.size2)
+            : const PosStyles(),
       ),
-      PosColumn(text: value, width: 6, styles: style),
+      PosColumn(text: value, width: 7, styles: style),
     ]);
   }
 

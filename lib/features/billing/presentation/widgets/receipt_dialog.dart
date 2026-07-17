@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/enums.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/upi.dart';
 import '../../../printing/application/printing_providers.dart';
 import '../../../settings/application/settings_providers.dart';
 import '../../../settings/domain/shop_profile.dart';
@@ -124,6 +126,22 @@ class _ReceiptViewState extends ConsumerState<_ReceiptView> {
           _total(context, 'Grand total', r.grandTotal.formatted, bold: true),
           _meta(context, 'Payment', _paymentLabel(r.paymentMethod)),
 
+          // ── GST number (hidden above the cash limit) ────────
+          if (shop.shouldPrintGst(r.grandTotal)) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'GSTIN: ${shop.gstNumber!.trim()}',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+
+          // ── Scannable UPI payment QR ────────────────────────
+          if (shop.shouldShowUpiQr(r.grandTotal)) _upiQr(context, shop, r),
+
           if (_has(shop.footerText)) ...[
             const SizedBox(height: AppSpacing.md),
             Text(
@@ -167,6 +185,50 @@ class _ReceiptViewState extends ConsumerState<_ReceiptView> {
   }
 
   static bool _has(String? s) => s != null && s.trim().isNotEmpty;
+
+  /// A live UPI QR the customer can scan straight off the tablet screen — the
+  /// exact bill amount is pre-filled in their Google Pay / PhonePe / bank app.
+  Widget _upiQr(BuildContext context, ShopProfile shop, BillReceipt r) {
+    final uri = buildUpiUri(
+      vpa: shop.upiId!.trim(),
+      payeeName: shop.upiPayeeName,
+      amount: r.grandTotal,
+      note: r.invoiceNo,
+    );
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: Column(
+        children: [
+          Text(
+            'Scan & Pay ${r.grandTotal.formatted}',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            child: QrImageView(
+              data: uri,
+              size: 160,
+              backgroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            shop.upiId!.trim(),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _meta(BuildContext context, String label, String value) {
     return Padding(

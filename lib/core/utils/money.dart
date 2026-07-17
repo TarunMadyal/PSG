@@ -19,6 +19,11 @@ extension type const Money(int paise) implements Object {
   Money operator -(Money other) => Money(paise - other.paise);
   Money operator *(int qty) => Money(paise * qty);
 
+  bool operator >(Money other) => paise > other.paise;
+  bool operator <(Money other) => paise < other.paise;
+  bool operator >=(Money other) => paise >= other.paise;
+  bool operator <=(Money other) => paise <= other.paise;
+
   bool get isZero => paise == 0;
   bool get isNegative => paise < 0;
 

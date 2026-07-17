@@ -3,14 +3,14 @@
 /// of the period up to the end of today.
 enum ReportRange {
   today,
-  week,
   month,
+  quarter,
   year;
 
   String get label => switch (this) {
         ReportRange.today => 'Today',
-        ReportRange.week => 'This Week',
         ReportRange.month => 'This Month',
+        ReportRange.quarter => 'This Quarter',
         ReportRange.year => 'This Year',
       };
 
@@ -22,9 +22,10 @@ enum ReportRange {
 
     final from = switch (this) {
       ReportRange.today => startOfDay,
-      // Week starts Monday.
-      ReportRange.week => startOfDay.subtract(Duration(days: n.weekday - 1)),
       ReportRange.month => DateTime(n.year, n.month),
+      // Quarter starts on the first day of the current 3-month block
+      // (Jan/Apr/Jul/Oct).
+      ReportRange.quarter => DateTime(n.year, ((n.month - 1) ~/ 3) * 3 + 1),
       ReportRange.year => DateTime(n.year),
     };
 

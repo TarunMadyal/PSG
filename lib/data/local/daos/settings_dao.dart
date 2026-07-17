@@ -24,6 +24,8 @@ class SettingsDao extends DatabaseAccessor<AppDatabase> with _$SettingsDaoMixin 
     return into(appSettings).insertReturning(
       const AppSettingsCompanion(
         footerText: Value('Thank you! Visit again.'),
+        gstNumber: Value('29AEXPJ3122K1Z1'),
+        upiId: Value('8123426350@okbizaxis'),
       ),
     );
   }
