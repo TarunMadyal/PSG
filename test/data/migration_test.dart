@@ -34,8 +34,8 @@ void main() {
       );
     ''');
     raw.execute(
-      "INSERT INTO app_settings "
-      "(id, created_at, updated_at, shop_name, address, phone, receipt_width) "
+      'INSERT INTO app_settings '
+      '(id, created_at, updated_at, shop_name, address, phone, receipt_width) '
       "VALUES ('s1', 1700000000, 1700000000, 'Padamshree Garments', "
       "'Haveri', '8660011315', 80);",
     );

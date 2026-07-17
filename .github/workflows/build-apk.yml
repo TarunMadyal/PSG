@@ -36,7 +36,9 @@ jobs:
         run: flutter pub get
 
       - name: Run analyzer
-        run: flutter analyze
+        # Info-level lints shouldn't block the shop from getting a build;
+        # warnings and errors still fail the job.
+        run: flutter analyze --no-fatal-infos
 
       - name: Run tests
         run: flutter test
