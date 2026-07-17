@@ -61,15 +61,35 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           await combosDao.seedDefaults();
         },
+        // Stepped, ADDITIVE migrations: each app update preserves existing data
+        // (bills, products, combos, settings). Never drop-and-recreate — the
+        // device DB is the source of truth until cloud sync exists.
         onUpgrade: (m, from, to) async {
-          // The app is still pre-production: rather than carry per-version
-          // migrations, rebuild the schema from scratch on any upgrade. Cloud
-          // sync (when enabled) re-hydrates data, so this is safe here.
-          for (final table in allTables.toList().reversed) {
-            await m.deleteTable(table.actualTableName);
+          // v3: combo billing + nullable product on bill items.
+          if (from < 3) {
+            await m.createTable(comboShirts);
+            await m.createTable(comboPants);
+            // Relax bill_items.product_id from NOT NULL to nullable so combo /
+            // random lines (which have no catalog product) can be stored. This
+            // recreates the table copying all existing rows.
+            // ignore: experimental_member_use
+            await m.alterTable(TableMigration(billItems));
+            await combosDao.seedDefaults();
           }
-          await m.createAll();
-          await combosDao.seedDefaults();
+          // v4: GST number, cash limit and UPI QR settings.
+          if (from < 4) {
+            await m.addColumn(appSettings, appSettings.gstNumber);
+            await m.addColumn(appSettings, appSettings.gstCashLimitPaise);
+            await m.addColumn(appSettings, appSettings.upiId);
+            await m.addColumn(appSettings, appSettings.upiName);
+            await m.addColumn(appSettings, appSettings.showUpiQr);
+            // Seed defaults into the existing (single) settings row.
+            await customStatement(
+              'UPDATE app_settings SET '
+              "gst_number = COALESCE(gst_number, '29AEXPJ3122K1Z1'), "
+              "upi_id = COALESCE(upi_id, '8123426350@okbizaxis')",
+            );
+          }
         },
         // Note: FK enforcement is enabled via the raw-connection `setup`
         // callback (see `_openConnection`), not here — SQLite ignores

@@ -5,11 +5,13 @@ import '../../../../core/enums.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/money.dart';
 import '../../../auth/application/auth_controller.dart';
+import '../../../settings/application/settings_providers.dart';
 import '../../application/billing_providers.dart';
 import '../../application/cart_controller.dart';
 import '../../domain/cart.dart';
 import 'amount_dialog.dart';
 import 'receipt_dialog.dart';
+import 'upi_qr_dialog.dart';
 
 /// The right-hand "current sale" panel: line items, discounts, payment method,
 /// optional customer, totals and the charge button.
@@ -125,6 +127,7 @@ class _CartPanelState extends ConsumerState<CartPanel> {
                 const SizedBox(height: AppSpacing.xs),
                 _totalRow(context, 'Total', cart.grandTotal, emphasize: true),
                 const SizedBox(height: AppSpacing.md),
+                _UpiPayButton(amount: cart.grandTotal),
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -209,6 +212,36 @@ class _CartPanelState extends ConsumerState<CartPanel> {
             style: style,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Pay by UPI" — shows a scannable QR for the current cart total so the
+/// customer can pay BEFORE the bill is finalised. Only appears once a UPI ID is
+/// configured in Settings.
+class _UpiPayButton extends ConsumerWidget {
+  const _UpiPayButton({required this.amount});
+
+  final Money amount;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shop = ref.watch(shopProfileProvider).valueOrNull;
+    if (shop == null || !shop.hasUpi || amount.isZero) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: OutlinedButton.icon(
+          onPressed: () =>
+              showUpiQrDialog(context, shop: shop, amount: amount, note: 'Sale'),
+          icon: const Icon(Icons.qr_code_2),
+          label: Text('Pay by UPI  ${amount.formatted}'),
+        ),
       ),
     );
   }
