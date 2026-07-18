@@ -53,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -103,6 +103,16 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
               'UPDATE bills SET is_gst = 1 '
               "WHERE payment_method IN ('upi', 'cashPlusUpi')",
+            );
+          }
+          // v7: rename existing accounts to the OWNER / owner labels so older
+          // installs match new ones (previously they were "Admin" / "Staff").
+          if (from < 7) {
+            await customStatement(
+              "UPDATE users SET name = 'OWNER' WHERE role = 'owner'",
+            );
+            await customStatement(
+              "UPDATE users SET name = 'owner' WHERE role = 'staff'",
             );
           }
         },

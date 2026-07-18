@@ -8,7 +8,8 @@ import 'package:sqlite3/sqlite3.dart';
 /// Proves that upgrading an existing on-device database preserves the shop's
 /// data — an app update must never wipe bills, products or settings.
 void main() {
-  test('v3 -> v5 upgrade keeps data and adds new columns/defaults', () async {
+  test('v3 -> latest upgrade keeps data and adds new columns/defaults',
+      () async {
     final dir = await Directory.systemTemp.createTemp('psg_migration');
     final path = '${dir.path}/psg_pos.sqlite';
 
@@ -72,6 +73,32 @@ void main() {
       "VALUES ('b2', 1700000000, 1700000000, 'INV-00002', 'u1', 90000, "
       "'upi', 1700000000);",
     );
+    // Users named the old way, to prove the v7 rename runs.
+    raw.execute('''
+      CREATE TABLE users (
+        id TEXT NOT NULL PRIMARY KEY,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        version INTEGER NOT NULL DEFAULT 1,
+        is_deleted INTEGER NOT NULL DEFAULT 0,
+        device_id TEXT,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL,
+        phone TEXT,
+        email TEXT,
+        pin_hash TEXT,
+        password_hash TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1
+      );
+    ''');
+    raw.execute(
+      'INSERT INTO users (id, created_at, updated_at, name, role) '
+      "VALUES ('u1', 1700000000, 1700000000, 'Admin', 'owner');",
+    );
+    raw.execute(
+      'INSERT INTO users (id, created_at, updated_at, name, role) '
+      "VALUES ('u2', 1700000000, 1700000000, 'Staff', 'staff');",
+    );
     raw.execute('PRAGMA user_version = 3;');
     raw.dispose();
 
@@ -113,5 +140,11 @@ void main() {
           ..where((t) => t.id.equals('b2')))
         .getSingle();
     expect(upiBill.isGst, true);
+
+    // v7 renamed the accounts to OWNER / owner.
+    final users = await db.usersDao.getById('u1');
+    expect(users!.name, 'OWNER');
+    final staff = await db.usersDao.getById('u2');
+    expect(staff!.name, 'owner');
   });
 }
