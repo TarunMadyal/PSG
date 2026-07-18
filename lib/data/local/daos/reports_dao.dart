@@ -50,6 +50,18 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
     );
   }
 
+  /// All completed bills in the range (newest last), for a detailed listing.
+  Future<List<Bill>> billsInRange(
+    DateTime from,
+    DateTime to, {
+    bool? isGst,
+  }) {
+    return (select(bills)
+          ..where((t) => _completedInRange(from, to, isGst))
+          ..orderBy([(t) => OrderingTerm.asc(t.billedAt)]))
+        .get();
+  }
+
   /// Number of individual units sold in the range.
   Future<int> itemsSold(DateTime from, DateTime to, {bool? isGst}) async {
     final qty = billItems.qty.sum();

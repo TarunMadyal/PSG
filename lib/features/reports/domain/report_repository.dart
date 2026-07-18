@@ -11,6 +11,12 @@ abstract interface class ReportRepository {
     GstFilter filter,
   });
 
+  /// Individual bills in the range (for the detailed report listing).
+  Future<List<ReportBillRow>> billsInRange(
+    ReportRange range, {
+    GstFilter filter,
+  });
+
   /// Convenience: fetches the full dashboard for [range] in one call.
   Future<ReportDashboard> dashboard(ReportRange range, {GstFilter filter});
 }

@@ -145,21 +145,21 @@ class ReportsScreen extends ConsumerWidget {
     try {
       final filter = ref.read(selectedGstFilterProvider);
       final shop = await ref.read(settingsRepositoryProvider).get();
+      final bills = await ref
+          .read(reportRepositoryProvider)
+          .billsInRange(range, filter: filter);
       final bytes = await buildReportPdf(
         data,
         range,
         shop,
         DateTime.now(),
-        filter: filter,
+        bills: bills,
       );
-      final scope =
-          filter == GstFilter.all ? '' : '-${filter.name}';
       final stamp = range.label.toLowerCase().replaceAll(' ', '-');
       await shareBytes(
         bytes,
-        filename: 'psg-$stamp$scope-report.pdf',
-        subject:
-            '${shop.shopName} — ${range.label} sales report (${filter.label})',
+        filename: 'psg-$stamp-report.pdf',
+        subject: '${shop.shopName} — ${range.label} sales report',
         text: 'Sales report attached.',
       );
     } catch (e) {

@@ -49,6 +49,26 @@ class ReportRepositoryImpl implements ReportRepository {
   }
 
   @override
+  Future<List<ReportBillRow>> billsInRange(
+    ReportRange range, {
+    GstFilter filter = GstFilter.all,
+  }) async {
+    final (from, to) = range.bounds();
+    final rows = await _dao.billsInRange(from, to, isGst: filter.isGstValue);
+    return rows
+        .map(
+          (b) => ReportBillRow(
+            invoiceNo: b.invoiceNo,
+            billedAt: b.billedAt,
+            paymentMethod: b.paymentMethod,
+            total: Money(b.grandTotalPaise),
+            isGst: b.isGst,
+          ),
+        )
+        .toList();
+  }
+
+  @override
   Future<ReportDashboard> dashboard(
     ReportRange range, {
     GstFilter filter = GstFilter.all,

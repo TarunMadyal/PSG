@@ -1,4 +1,22 @@
+import '../../../core/enums.dart';
 import '../../../core/utils/money.dart';
+
+/// One bill row for the detailed listing in a report / PDF.
+class ReportBillRow {
+  const ReportBillRow({
+    required this.invoiceNo,
+    required this.billedAt,
+    required this.paymentMethod,
+    required this.total,
+    required this.isGst,
+  });
+
+  final String invoiceNo;
+  final DateTime billedAt;
+  final PaymentMethod paymentMethod;
+  final Money total;
+  final bool isGst;
+}
 
 /// Sales totals for a period.
 class SalesSummary {
