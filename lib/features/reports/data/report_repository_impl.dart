@@ -1,5 +1,6 @@
 import '../../../core/utils/money.dart';
 import '../../../data/local/daos/reports_dao.dart';
+import '../domain/report_filter.dart';
 import '../domain/report_models.dart';
 import '../domain/report_range.dart';
 import '../domain/report_repository.dart';
@@ -11,10 +12,14 @@ class ReportRepositoryImpl implements ReportRepository {
   final ReportsDao _dao;
 
   @override
-  Future<SalesSummary> salesSummary(ReportRange range) async {
+  Future<SalesSummary> salesSummary(
+    ReportRange range, {
+    GstFilter filter = GstFilter.all,
+  }) async {
     final (from, to) = range.bounds();
-    final agg = await _dao.salesSummary(from, to);
-    final items = await _dao.itemsSold(from, to);
+    final isGst = filter.isGstValue;
+    final agg = await _dao.salesSummary(from, to, isGst: isGst);
+    final items = await _dao.itemsSold(from, to, isGst: isGst);
     return SalesSummary(
       totalSales: Money(agg.totalPaise),
       totalDiscount: Money(agg.discountPaise),
@@ -24,9 +29,14 @@ class ReportRepositoryImpl implements ReportRepository {
   }
 
   @override
-  Future<List<BestSeller>> bestSellers(ReportRange range, {int limit = 10}) async {
+  Future<List<BestSeller>> bestSellers(
+    ReportRange range, {
+    int limit = 10,
+    GstFilter filter = GstFilter.all,
+  }) async {
     final (from, to) = range.bounds();
-    final rows = await _dao.bestSellers(from, to, limit: limit);
+    final rows =
+        await _dao.bestSellers(from, to, limit: limit, isGst: filter.isGstValue);
     return rows
         .map(
           (r) => BestSeller(
@@ -39,9 +49,12 @@ class ReportRepositoryImpl implements ReportRepository {
   }
 
   @override
-  Future<ReportDashboard> dashboard(ReportRange range) async {
-    final sales = await salesSummary(range);
-    final best = await bestSellers(range);
+  Future<ReportDashboard> dashboard(
+    ReportRange range, {
+    GstFilter filter = GstFilter.all,
+  }) async {
+    final sales = await salesSummary(range, filter: filter);
+    final best = await bestSellers(range, filter: filter);
     return ReportDashboard(sales: sales, bestSellers: best);
   }
 }

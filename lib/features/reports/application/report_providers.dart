@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/di/providers.dart';
 import '../data/report_repository_impl.dart';
+import '../domain/report_filter.dart';
 import '../domain/report_models.dart';
 import '../domain/report_range.dart';
 import '../domain/report_repository.dart';
@@ -16,8 +17,15 @@ final selectedRangeProvider = StateProvider<ReportRange>(
   (ref) => ReportRange.today,
 );
 
-/// The dashboard for the selected range. Re-fetches when the range changes.
+/// The GST scope currently selected on the Reports screen.
+final selectedGstFilterProvider = StateProvider<GstFilter>(
+  (ref) => GstFilter.all,
+);
+
+/// The dashboard for the selected range + GST scope. Re-fetches when either
+/// changes.
 final reportDashboardProvider = FutureProvider<ReportDashboard>((ref) {
   final range = ref.watch(selectedRangeProvider);
-  return ref.watch(reportRepositoryProvider).dashboard(range);
+  final filter = ref.watch(selectedGstFilterProvider);
+  return ref.watch(reportRepositoryProvider).dashboard(range, filter: filter);
 });

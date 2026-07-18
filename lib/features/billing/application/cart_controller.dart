@@ -116,6 +116,9 @@ class CartController extends Notifier<Cart> {
     );
   }
 
+  /// Marks this sale as a GST (tax invoice) bill or a plain bill.
+  void setGst(bool isGst) => state = state.copyWith(isGst: isGst);
+
   void setCustomer({String? name, String? phone}) {
     state = state.copyWith(customerName: name, customerPhone: phone);
   }

@@ -16,13 +16,18 @@ typedef BillWithItems = ({Bill bill, List<BillItem> items});
 class BillsDao extends DatabaseAccessor<AppDatabase> with _$BillsDaoMixin {
   BillsDao(super.db);
 
-  /// Generates the next invoice number. Sequential and zero-padded; a
-  /// per-device prefix is layered on in the sync phase to stay unique offline.
-  Future<String> nextInvoiceNo() async {
+  /// Generates the next invoice number for the given bill type. GST bills use a
+  /// separate "GST-" series and plain bills an "INV-" series, each counted and
+  /// numbered independently so the two ledgers stay cleanly separated.
+  Future<String> nextInvoiceNo({required bool isGst}) async {
     final countExp = bills.id.count();
-    final row = await (selectOnly(bills)..addColumns([countExp])).getSingle();
+    final row = await (selectOnly(bills)
+          ..addColumns([countExp])
+          ..where(bills.isGst.equals(isGst)))
+        .getSingle();
     final next = (row.read(countExp) ?? 0) + 1;
-    return 'INV-${next.toString().padLeft(5, '0')}';
+    final prefix = isGst ? 'GST' : 'INV';
+    return '$prefix-${next.toString().padLeft(5, '0')}';
   }
 
   Future<Bill> insertBill(BillsCompanion bill) async {

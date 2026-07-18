@@ -36,6 +36,7 @@ class _CartPanelState extends ConsumerState<CartPanel> {
           cart: cart,
           cashierId: user.id,
           cashierName: user.name,
+          isGst: cart.isGst,
         );
     if (!mounted) return;
     setState(() => _charging = false);
@@ -102,6 +103,7 @@ class _CartPanelState extends ConsumerState<CartPanel> {
           _PaymentSelector(selected: cart.paymentMethod),
           if (cart.paymentMethod == PaymentMethod.cashPlusUpi)
             _SplitCashField(cart: cart),
+          _GstToggle(isGst: cart.isGst),
           Container(
             color: scheme.surfaceContainerHighest,
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -378,8 +380,44 @@ class _PaymentSelector extends ConsumerWidget {
         ],
         selected: {selected},
         showSelectedIcon: false,
-        onSelectionChanged: (s) =>
-            ref.read(cartProvider.notifier).setPaymentMethod(s.first),
+        onSelectionChanged: (s) {
+          final notifier = ref.read(cartProvider.notifier);
+          notifier.setPaymentMethod(s.first);
+          // Suggest a GST default for the chosen method (UPI/Cash+UPI on;
+          // cash follows the "Print GST on cash" setting). The cashier can
+          // still flip the GST toggle for any individual sale.
+          final shop = ref.read(shopProfileProvider).valueOrNull;
+          notifier.setGst(shop?.shouldPrintGst(s.first) ?? false);
+        },
+      ),
+    );
+  }
+}
+
+/// Per-sale switch marking the bill as a GST tax invoice or a plain bill.
+class _GstToggle extends ConsumerWidget {
+  const _GstToggle({required this.isGst});
+
+  final bool isGst;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shop = ref.watch(shopProfileProvider).valueOrNull;
+    // No GST number configured → nothing to toggle.
+    if (shop == null || !shop.hasGst) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      child: SwitchListTile(
+        dense: true,
+        value: isGst,
+        onChanged: (v) => ref.read(cartProvider.notifier).setGst(v),
+        title: const Text('GST bill (tax invoice)'),
+        subtitle: Text(
+          isGst
+              ? 'Prints GSTIN · GST- invoice series'
+              : 'Plain bill · INV- series',
+        ),
       ),
     );
   }

@@ -92,6 +92,12 @@ class _ReceiptViewState extends ConsumerState<_ReceiptView> {
             Text(shop.address!, textAlign: TextAlign.center, style: muted),
           if (_has(shop.phone))
             Text('Ph: ${shop.phone}', textAlign: TextAlign.center, style: muted),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            r.isGst ? 'TAX INVOICE' : 'CASH MEMO',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: AppSpacing.md),
           const Divider(),
 
@@ -139,8 +145,8 @@ class _ReceiptViewState extends ConsumerState<_ReceiptView> {
             _total(context, 'UPI paid', r.upiPaid.formatted),
           ],
 
-          // ── GST number ──────────────────────────────────────
-          if (shop.shouldPrintGst(r.paymentMethod)) ...[
+          // ── GST number (only on GST bills) ──────────────────
+          if (r.isGst && shop.hasGst) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(
               'GSTIN: ${shop.gstNumber!.trim()}',

@@ -2739,6 +2739,15 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
               'payment_method', aliasedName, false,
               type: DriftSqlType.string, requiredDuringInsert: true)
           .withConverter<PaymentMethod>($BillsTable.$converterpaymentMethod);
+  static const VerificationMeta _isGstMeta = const VerificationMeta('isGst');
+  @override
+  late final GeneratedColumn<bool> isGst = GeneratedColumn<bool>(
+      'is_gst', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_gst" IN (0, 1))'),
+      defaultValue: const Constant(false));
   @override
   late final GeneratedColumnWithTypeConverter<BillStatus, String> status =
       GeneratedColumn<String>('status', aliasedName, false,
@@ -2772,6 +2781,7 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
         cashPaidPaise,
         upiPaidPaise,
         paymentMethod,
+        isGst,
         status,
         billedAt
       ];
@@ -2860,6 +2870,10 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
           upiPaidPaise.isAcceptableOrUnknown(
               data['upi_paid_paise']!, _upiPaidPaiseMeta));
     }
+    if (data.containsKey('is_gst')) {
+      context.handle(
+          _isGstMeta, isGst.isAcceptableOrUnknown(data['is_gst']!, _isGstMeta));
+    }
     if (data.containsKey('billed_at')) {
       context.handle(_billedAtMeta,
           billedAt.isAcceptableOrUnknown(data['billed_at']!, _billedAtMeta));
@@ -2906,6 +2920,8 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
       paymentMethod: $BillsTable.$converterpaymentMethod.fromSql(
           attachedDatabase.typeMapping.read(
               DriftSqlType.string, data['${effectivePrefix}payment_method'])!),
+      isGst: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_gst'])!,
       status: $BillsTable.$converterstatus.fromSql(attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}status'])!),
       billedAt: attachedDatabase.typeMapping
@@ -2945,6 +2961,11 @@ class Bill extends DataClass implements Insertable<Bill> {
   final int? cashPaidPaise;
   final int? upiPaidPaise;
   final PaymentMethod paymentMethod;
+
+  /// Whether this is a GST (tax invoice) bill. GST bills use a separate invoice
+  /// series ("GST-"), print the GSTIN, and are reported separately from plain
+  /// (non-GST / cash-memo, "INV-") bills.
+  final bool isGst;
   final BillStatus status;
   final DateTime billedAt;
   const Bill(
@@ -2964,6 +2985,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       this.cashPaidPaise,
       this.upiPaidPaise,
       required this.paymentMethod,
+      required this.isGst,
       required this.status,
       required this.billedAt});
   @override
@@ -2996,6 +3018,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       map['payment_method'] = Variable<String>(
           $BillsTable.$converterpaymentMethod.toSql(paymentMethod));
     }
+    map['is_gst'] = Variable<bool>(isGst);
     {
       map['status'] =
           Variable<String>($BillsTable.$converterstatus.toSql(status));
@@ -3030,6 +3053,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           ? const Value.absent()
           : Value(upiPaidPaise),
       paymentMethod: Value(paymentMethod),
+      isGst: Value(isGst),
       status: Value(status),
       billedAt: Value(billedAt),
     );
@@ -3056,6 +3080,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       upiPaidPaise: serializer.fromJson<int?>(json['upiPaidPaise']),
       paymentMethod: $BillsTable.$converterpaymentMethod
           .fromJson(serializer.fromJson<String>(json['paymentMethod'])),
+      isGst: serializer.fromJson<bool>(json['isGst']),
       status: $BillsTable.$converterstatus
           .fromJson(serializer.fromJson<String>(json['status'])),
       billedAt: serializer.fromJson<DateTime>(json['billedAt']),
@@ -3082,6 +3107,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       'upiPaidPaise': serializer.toJson<int?>(upiPaidPaise),
       'paymentMethod': serializer.toJson<String>(
           $BillsTable.$converterpaymentMethod.toJson(paymentMethod)),
+      'isGst': serializer.toJson<bool>(isGst),
       'status': serializer
           .toJson<String>($BillsTable.$converterstatus.toJson(status)),
       'billedAt': serializer.toJson<DateTime>(billedAt),
@@ -3105,6 +3131,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           Value<int?> cashPaidPaise = const Value.absent(),
           Value<int?> upiPaidPaise = const Value.absent(),
           PaymentMethod? paymentMethod,
+          bool? isGst,
           BillStatus? status,
           DateTime? billedAt}) =>
       Bill(
@@ -3126,6 +3153,7 @@ class Bill extends DataClass implements Insertable<Bill> {
         upiPaidPaise:
             upiPaidPaise.present ? upiPaidPaise.value : this.upiPaidPaise,
         paymentMethod: paymentMethod ?? this.paymentMethod,
+        isGst: isGst ?? this.isGst,
         status: status ?? this.status,
         billedAt: billedAt ?? this.billedAt,
       );
@@ -3160,6 +3188,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       paymentMethod: data.paymentMethod.present
           ? data.paymentMethod.value
           : this.paymentMethod,
+      isGst: data.isGst.present ? data.isGst.value : this.isGst,
       status: data.status.present ? data.status.value : this.status,
       billedAt: data.billedAt.present ? data.billedAt.value : this.billedAt,
     );
@@ -3184,6 +3213,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           ..write('cashPaidPaise: $cashPaidPaise, ')
           ..write('upiPaidPaise: $upiPaidPaise, ')
           ..write('paymentMethod: $paymentMethod, ')
+          ..write('isGst: $isGst, ')
           ..write('status: $status, ')
           ..write('billedAt: $billedAt')
           ..write(')'))
@@ -3208,6 +3238,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       cashPaidPaise,
       upiPaidPaise,
       paymentMethod,
+      isGst,
       status,
       billedAt);
   @override
@@ -3230,6 +3261,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           other.cashPaidPaise == this.cashPaidPaise &&
           other.upiPaidPaise == this.upiPaidPaise &&
           other.paymentMethod == this.paymentMethod &&
+          other.isGst == this.isGst &&
           other.status == this.status &&
           other.billedAt == this.billedAt);
 }
@@ -3251,6 +3283,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
   final Value<int?> cashPaidPaise;
   final Value<int?> upiPaidPaise;
   final Value<PaymentMethod> paymentMethod;
+  final Value<bool> isGst;
   final Value<BillStatus> status;
   final Value<DateTime> billedAt;
   final Value<int> rowid;
@@ -3271,6 +3304,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.cashPaidPaise = const Value.absent(),
     this.upiPaidPaise = const Value.absent(),
     this.paymentMethod = const Value.absent(),
+    this.isGst = const Value.absent(),
     this.status = const Value.absent(),
     this.billedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -3292,6 +3326,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.cashPaidPaise = const Value.absent(),
     this.upiPaidPaise = const Value.absent(),
     required PaymentMethod paymentMethod,
+    this.isGst = const Value.absent(),
     this.status = const Value.absent(),
     this.billedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -3315,6 +3350,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Expression<int>? cashPaidPaise,
     Expression<int>? upiPaidPaise,
     Expression<String>? paymentMethod,
+    Expression<bool>? isGst,
     Expression<String>? status,
     Expression<DateTime>? billedAt,
     Expression<int>? rowid,
@@ -3336,6 +3372,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       if (cashPaidPaise != null) 'cash_paid_paise': cashPaidPaise,
       if (upiPaidPaise != null) 'upi_paid_paise': upiPaidPaise,
       if (paymentMethod != null) 'payment_method': paymentMethod,
+      if (isGst != null) 'is_gst': isGst,
       if (status != null) 'status': status,
       if (billedAt != null) 'billed_at': billedAt,
       if (rowid != null) 'rowid': rowid,
@@ -3359,6 +3396,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       Value<int?>? cashPaidPaise,
       Value<int?>? upiPaidPaise,
       Value<PaymentMethod>? paymentMethod,
+      Value<bool>? isGst,
       Value<BillStatus>? status,
       Value<DateTime>? billedAt,
       Value<int>? rowid}) {
@@ -3379,6 +3417,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       cashPaidPaise: cashPaidPaise ?? this.cashPaidPaise,
       upiPaidPaise: upiPaidPaise ?? this.upiPaidPaise,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      isGst: isGst ?? this.isGst,
       status: status ?? this.status,
       billedAt: billedAt ?? this.billedAt,
       rowid: rowid ?? this.rowid,
@@ -3437,6 +3476,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       map['payment_method'] = Variable<String>(
           $BillsTable.$converterpaymentMethod.toSql(paymentMethod.value));
     }
+    if (isGst.present) {
+      map['is_gst'] = Variable<bool>(isGst.value);
+    }
     if (status.present) {
       map['status'] =
           Variable<String>($BillsTable.$converterstatus.toSql(status.value));
@@ -3469,6 +3511,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
           ..write('cashPaidPaise: $cashPaidPaise, ')
           ..write('upiPaidPaise: $upiPaidPaise, ')
           ..write('paymentMethod: $paymentMethod, ')
+          ..write('isGst: $isGst, ')
           ..write('status: $status, ')
           ..write('billedAt: $billedAt, ')
           ..write('rowid: $rowid')
@@ -6624,6 +6667,7 @@ typedef $$BillsTableCreateCompanionBuilder = BillsCompanion Function({
   Value<int?> cashPaidPaise,
   Value<int?> upiPaidPaise,
   required PaymentMethod paymentMethod,
+  Value<bool> isGst,
   Value<BillStatus> status,
   Value<DateTime> billedAt,
   Value<int> rowid,
@@ -6645,6 +6689,7 @@ typedef $$BillsTableUpdateCompanionBuilder = BillsCompanion Function({
   Value<int?> cashPaidPaise,
   Value<int?> upiPaidPaise,
   Value<PaymentMethod> paymentMethod,
+  Value<bool> isGst,
   Value<BillStatus> status,
   Value<DateTime> billedAt,
   Value<int> rowid,
@@ -6708,6 +6753,9 @@ class $$BillsTableFilterComposer extends Composer<_$AppDatabase, $BillsTable> {
       get paymentMethod => $composableBuilder(
           column: $table.paymentMethod,
           builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<bool> get isGst => $composableBuilder(
+      column: $table.isGst, builder: (column) => ColumnFilters(column));
 
   ColumnWithTypeConverterFilters<BillStatus, BillStatus, String> get status =>
       $composableBuilder(
@@ -6781,6 +6829,9 @@ class $$BillsTableOrderingComposer
       column: $table.paymentMethod,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isGst => $composableBuilder(
+      column: $table.isGst, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get status => $composableBuilder(
       column: $table.status, builder: (column) => ColumnOrderings(column));
 
@@ -6846,6 +6897,9 @@ class $$BillsTableAnnotationComposer
       $composableBuilder(
           column: $table.paymentMethod, builder: (column) => column);
 
+  GeneratedColumn<bool> get isGst =>
+      $composableBuilder(column: $table.isGst, builder: (column) => column);
+
   GeneratedColumnWithTypeConverter<BillStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
@@ -6892,6 +6946,7 @@ class $$BillsTableTableManager extends RootTableManager<
             Value<int?> cashPaidPaise = const Value.absent(),
             Value<int?> upiPaidPaise = const Value.absent(),
             Value<PaymentMethod> paymentMethod = const Value.absent(),
+            Value<bool> isGst = const Value.absent(),
             Value<BillStatus> status = const Value.absent(),
             Value<DateTime> billedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -6913,6 +6968,7 @@ class $$BillsTableTableManager extends RootTableManager<
             cashPaidPaise: cashPaidPaise,
             upiPaidPaise: upiPaidPaise,
             paymentMethod: paymentMethod,
+            isGst: isGst,
             status: status,
             billedAt: billedAt,
             rowid: rowid,
@@ -6934,6 +6990,7 @@ class $$BillsTableTableManager extends RootTableManager<
             Value<int?> cashPaidPaise = const Value.absent(),
             Value<int?> upiPaidPaise = const Value.absent(),
             required PaymentMethod paymentMethod,
+            Value<bool> isGst = const Value.absent(),
             Value<BillStatus> status = const Value.absent(),
             Value<DateTime> billedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -6955,6 +7012,7 @@ class $$BillsTableTableManager extends RootTableManager<
             cashPaidPaise: cashPaidPaise,
             upiPaidPaise: upiPaidPaise,
             paymentMethod: paymentMethod,
+            isGst: isGst,
             status: status,
             billedAt: billedAt,
             rowid: rowid,

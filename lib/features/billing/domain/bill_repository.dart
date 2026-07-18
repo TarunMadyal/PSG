@@ -11,6 +11,7 @@ abstract interface class BillRepository {
     required Cart cart,
     required String cashierId,
     required String cashierName,
+    bool isGst = false,
   });
 
   /// Rebuilds a saved bill's receipt (for viewing/reprinting from history).

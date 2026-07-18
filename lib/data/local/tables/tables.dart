@@ -109,6 +109,12 @@ class Bills extends Table with SyncColumns {
   IntColumn get upiPaidPaise => integer().nullable()();
 
   TextColumn get paymentMethod => textEnum<PaymentMethod>()();
+
+  /// Whether this is a GST (tax invoice) bill. GST bills use a separate invoice
+  /// series ("GST-"), print the GSTIN, and are reported separately from plain
+  /// (non-GST / cash-memo, "INV-") bills.
+  BoolColumn get isGst => boolean().withDefault(const Constant(false))();
+
   TextColumn get status =>
       textEnum<BillStatus>().withDefault(Constant(BillStatus.completed.name))();
   DateTimeColumn get billedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();

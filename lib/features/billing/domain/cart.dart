@@ -44,6 +44,7 @@ class Cart {
     this.billDiscount = Money.zero,
     this.paymentMethod = PaymentMethod.cash,
     this.cashPaid,
+    this.isGst = false,
     this.customerName,
     this.customerPhone,
   });
@@ -51,6 +52,10 @@ class Cart {
   final List<CartLine> lines;
   final Money billDiscount;
   final PaymentMethod paymentMethod;
+
+  /// Whether this sale is a GST (tax invoice) bill. Drives the invoice series,
+  /// whether the GSTIN prints, and which report the sale falls under.
+  final bool isGst;
 
   /// For a Cash + UPI split: how much the customer pays in cash. The rest is
   /// collected via UPI. Null for pure cash / pure UPI sales.
@@ -112,6 +117,7 @@ class Cart {
     Money? billDiscount,
     PaymentMethod? paymentMethod,
     Object? cashPaid = _sentinel,
+    bool? isGst,
     Object? customerName = _sentinel,
     Object? customerPhone = _sentinel,
   }) {
@@ -120,6 +126,7 @@ class Cart {
       billDiscount: billDiscount ?? this.billDiscount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       cashPaid: cashPaid == _sentinel ? this.cashPaid : cashPaid as Money?,
+      isGst: isGst ?? this.isGst,
       customerName: customerName == _sentinel
           ? this.customerName
           : customerName as String?,

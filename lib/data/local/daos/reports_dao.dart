@@ -19,22 +19,28 @@ typedef BestSellerRow = ({String name, int qtySold, int revenuePaise});
 class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   ReportsDao(super.db);
 
-  Expression<bool> _completedInRange(DateTime from, DateTime to) {
-    return bills.isDeleted.equals(false) &
+  Expression<bool> _completedInRange(DateTime from, DateTime to, bool? isGst) {
+    var expr = bills.isDeleted.equals(false) &
         bills.status.equalsValue(BillStatus.completed) &
         bills.billedAt.isBiggerOrEqualValue(from) &
         bills.billedAt.isSmallerThanValue(to);
+    if (isGst != null) expr = expr & bills.isGst.equals(isGst);
+    return expr;
   }
 
   /// Total sales, total discount and number of bills in the range.
-  Future<SalesAggregate> salesSummary(DateTime from, DateTime to) async {
+  Future<SalesAggregate> salesSummary(
+    DateTime from,
+    DateTime to, {
+    bool? isGst,
+  }) async {
     final total = bills.grandTotalPaise.sum();
     final discount = bills.discountPaise.sum();
     final count = bills.id.count();
 
     final row = await (selectOnly(bills)
           ..addColumns([total, discount, count])
-          ..where(_completedInRange(from, to)))
+          ..where(_completedInRange(from, to, isGst)))
         .getSingle();
 
     return (
@@ -45,13 +51,13 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   }
 
   /// Number of individual units sold in the range.
-  Future<int> itemsSold(DateTime from, DateTime to) async {
+  Future<int> itemsSold(DateTime from, DateTime to, {bool? isGst}) async {
     final qty = billItems.qty.sum();
     final query = selectOnly(billItems).join([
       innerJoin(bills, bills.id.equalsExp(billItems.billId)),
     ])
       ..addColumns([qty])
-      ..where(_completedInRange(from, to));
+      ..where(_completedInRange(from, to, isGst));
 
     final row = await query.getSingle();
     return row.read(qty) ?? 0;
@@ -62,6 +68,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
     DateTime from,
     DateTime to, {
     int limit = 10,
+    bool? isGst,
   }) async {
     final qty = billItems.qty.sum();
     final revenue = billItems.amountPaise.sum();
@@ -70,7 +77,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       innerJoin(bills, bills.id.equalsExp(billItems.billId)),
     ])
       ..addColumns([billItems.nameSnapshot, qty, revenue])
-      ..where(_completedInRange(from, to))
+      ..where(_completedInRange(from, to, isGst))
       ..groupBy([billItems.nameSnapshot])
       ..orderBy([OrderingTerm.desc(qty)])
       ..limit(limit);

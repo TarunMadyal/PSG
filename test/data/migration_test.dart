@@ -66,6 +66,12 @@ void main() {
       "VALUES ('b1', 1700000000, 1700000000, 'INV-00001', 'u1', 55000, "
       "'cash', 1700000000);",
     );
+    raw.execute(
+      'INSERT INTO bills (id, created_at, updated_at, invoice_no, cashier_id, '
+      'grand_total_paise, payment_method, billed_at) '
+      "VALUES ('b2', 1700000000, 1700000000, 'INV-00002', 'u1', 90000, "
+      "'upi', 1700000000);",
+    );
     raw.execute('PRAGMA user_version = 3;');
     raw.dispose();
 
@@ -100,5 +106,12 @@ void main() {
         .getSingle();
     expect(bill.grandTotalPaise, 55000);
     expect(bill.cashPaidPaise, isNull);
+
+    // v6 classified existing bills: cash → non-GST, UPI → GST.
+    expect(bill.isGst, false);
+    final upiBill = await (db.select(db.bills)
+          ..where((t) => t.id.equals('b2')))
+        .getSingle();
+    expect(upiBill.isGst, true);
   });
 }

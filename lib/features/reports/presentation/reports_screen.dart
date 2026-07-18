@@ -9,6 +9,7 @@ import '../../printing/application/printing_providers.dart';
 import '../../settings/application/settings_providers.dart';
 import '../application/report_providers.dart';
 import '../data/report_pdf.dart';
+import '../domain/report_filter.dart';
 import '../domain/report_models.dart';
 import '../domain/report_range.dart';
 
@@ -21,6 +22,7 @@ class ReportsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final range = ref.watch(selectedRangeProvider);
+    final gstFilter = ref.watch(selectedGstFilterProvider);
     final dashboard = ref.watch(reportDashboardProvider);
 
     return Scaffold(
@@ -48,16 +50,42 @@ class ReportsScreen extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: SegmentedButton<ReportRange>(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.sm,
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<ReportRange>(
+                segments: [
+                  for (final r in ReportRange.values)
+                    ButtonSegment(value: r, label: Text(r.label)),
+                ],
+                selected: {range},
+                showSelectedIcon: false,
+                onSelectionChanged: (s) =>
+                    ref.read(selectedRangeProvider.notifier).state = s.first,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.md,
+            ),
+            child: SegmentedButton<GstFilter>(
               segments: [
-                for (final r in ReportRange.values)
-                  ButtonSegment(value: r, label: Text(r.label)),
+                for (final f in GstFilter.values)
+                  ButtonSegment(value: f, label: Text(f.label)),
               ],
-              selected: {range},
+              selected: {gstFilter},
               showSelectedIcon: false,
               onSelectionChanged: (s) =>
-                  ref.read(selectedRangeProvider.notifier).state = s.first,
+                  ref.read(selectedGstFilterProvider.notifier).state = s.first,
             ),
           ),
           Expanded(
@@ -82,15 +110,18 @@ class ReportsScreen extends ConsumerWidget {
       );
       return;
     }
+    final filter = ref.read(selectedGstFilterProvider);
     final ok = await confirmDialog(
       context,
       title: 'Print report?',
-      message: 'Print the ${range.label.toLowerCase()} report to the printer?',
+      message: 'Print the ${range.label.toLowerCase()} report '
+          '(${filter.label.toLowerCase()}) to the printer?',
     );
     if (!ok) return;
     final shop = await ref.read(settingsRepositoryProvider).get();
-    final result =
-        await ref.read(printerServiceProvider).printReport(data, range, shop);
+    final result = await ref
+        .read(printerServiceProvider)
+        .printReport(data, range, shop, filter: filter);
     result.fold(
       (_) => messenger.showSnackBar(
         const SnackBar(content: Text('Report sent to printer.')),
@@ -112,13 +143,23 @@ class ReportsScreen extends ConsumerWidget {
       return;
     }
     try {
+      final filter = ref.read(selectedGstFilterProvider);
       final shop = await ref.read(settingsRepositoryProvider).get();
-      final bytes = await buildReportPdf(data, range, shop, DateTime.now());
+      final bytes = await buildReportPdf(
+        data,
+        range,
+        shop,
+        DateTime.now(),
+        filter: filter,
+      );
+      final scope =
+          filter == GstFilter.all ? '' : '-${filter.name}';
       final stamp = range.label.toLowerCase().replaceAll(' ', '-');
       await shareBytes(
         bytes,
-        filename: 'psg-$stamp-report.pdf',
-        subject: '${shop.shopName} — ${range.label} sales report',
+        filename: 'psg-$stamp$scope-report.pdf',
+        subject:
+            '${shop.shopName} — ${range.label} sales report (${filter.label})',
         text: 'Sales report attached.',
       );
     } catch (e) {

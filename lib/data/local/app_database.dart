@@ -53,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -95,6 +95,15 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(bills, bills.cashPaidPaise);
             await m.addColumn(bills, bills.upiPaidPaise);
             await m.addColumn(appSettings, appSettings.printGstOnCash);
+          }
+          // v6: GST vs non-GST bill flag. Classify existing bills sensibly —
+          // UPI / Cash+UPI bills were GST bills; cash bills were not.
+          if (from < 6) {
+            await m.addColumn(bills, bills.isGst);
+            await customStatement(
+              'UPDATE bills SET is_gst = 1 '
+              "WHERE payment_method IN ('upi', 'cashPlusUpi')",
+            );
           }
         },
         // Note: FK enforcement is enabled via the raw-connection `setup`

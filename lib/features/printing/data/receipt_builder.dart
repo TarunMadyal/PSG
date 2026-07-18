@@ -4,6 +4,7 @@ import '../../../core/enums.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/upi.dart';
 import '../../billing/domain/bill_receipt.dart';
+import '../../reports/domain/report_filter.dart';
 import '../../reports/domain/report_models.dart';
 import '../../reports/domain/report_range.dart';
 import '../../settings/domain/shop_profile.dart';
@@ -37,6 +38,11 @@ class ReceiptBuilder {
     if (_has(shop.phone)) {
       bytes.addAll(g.text('Ph: ${shop.phone!.trim()}', styles: _center));
     }
+
+    // Bill type: GST tax invoice vs plain cash memo.
+    bytes.addAll(
+      g.text(receipt.isGst ? 'TAX INVOICE' : 'CASH MEMO', styles: _boldCenter),
+    );
 
     bytes.addAll(g.hr());
 
@@ -103,8 +109,8 @@ class ReceiptBuilder {
 
     bytes.addAll(g.hr());
 
-    // ── GST number ───────────────────────────────────────────────────
-    if (shop.shouldPrintGst(receipt.paymentMethod)) {
+    // ── GST number (only on GST bills) ───────────────────────────────
+    if (receipt.isGst && shop.hasGst) {
       bytes.addAll(g.text('GSTIN: ${shop.gstNumber!.trim()}', styles: _boldCenter));
       bytes.addAll(g.hr());
     }
@@ -171,11 +177,16 @@ class ReceiptBuilder {
     ReportDashboard data,
     ReportRange range,
     ShopProfile shop,
-    DateTime generatedAt,
-  ) async {
+    DateTime generatedAt, {
+    GstFilter filter = GstFilter.all,
+  }) async {
     final profile = await CapabilityProfile.load();
     final paper = shop.receiptWidth == 58 ? PaperSize.mm58 : PaperSize.mm80;
     final g = Generator(paper, profile);
+
+    final title = filter == GstFilter.all
+        ? '${range.label} sales report'
+        : '${range.label} report (${filter.label})';
 
     final bytes = <int>[];
     bytes.addAll(g.reset());
@@ -184,7 +195,7 @@ class ReceiptBuilder {
 
     bytes.addAll(
       g.text(
-        '${range.label} sales report',
+        title,
         styles: const PosStyles(align: PosAlign.center, bold: true),
       ),
     );

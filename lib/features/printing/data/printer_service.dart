@@ -5,6 +5,7 @@ import '../../../core/error/failure.dart';
 import '../../../core/error/result.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../billing/domain/bill_receipt.dart';
+import '../../reports/domain/report_filter.dart';
 import '../../reports/domain/report_models.dart';
 import '../../reports/domain/report_range.dart';
 import '../../settings/domain/shop_profile.dart';
@@ -49,15 +50,22 @@ class PrinterService {
     return _printBytes(shop, () => _builder.buildTestPage(shop));
   }
 
-  /// Prints a sales report for the given range (owner).
+  /// Prints a sales report for the given range and GST scope (owner).
   Future<Result<void>> printReport(
     ReportDashboard data,
     ReportRange range,
-    ShopProfile shop,
-  ) {
+    ShopProfile shop, {
+    GstFilter filter = GstFilter.all,
+  }) {
     return _printBytes(
       shop,
-      () => _builder.buildReport(data, range, shop, DateTime.now()),
+      () => _builder.buildReport(
+        data,
+        range,
+        shop,
+        DateTime.now(),
+        filter: filter,
+      ),
     );
   }
 

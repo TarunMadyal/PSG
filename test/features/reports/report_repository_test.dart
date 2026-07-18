@@ -8,6 +8,7 @@ import 'package:psg_pos/features/billing/domain/cart.dart';
 import 'package:psg_pos/features/products/data/product_repository_impl.dart';
 import 'package:psg_pos/features/products/domain/product_item.dart';
 import 'package:psg_pos/features/reports/data/report_repository_impl.dart';
+import 'package:psg_pos/features/reports/domain/report_filter.dart';
 import 'package:psg_pos/features/reports/domain/report_range.dart';
 
 void main() {
@@ -71,6 +72,59 @@ void main() {
     expect(summary.billCount, 1);
     expect(summary.itemsSold, 3);
     expect(summary.averageBill, Money.fromRupees(250));
+  });
+
+  test('GST and non-GST sales are reported separately', () async {
+    final a = await addProduct('Shirt', 100);
+
+    // One GST bill (200) and one non-GST bill (100).
+    await bills.checkout(
+      cart: Cart(lines: [lineFor(a, 2)]),
+      cashierId: cashierId,
+      cashierName: 'Asha',
+      isGst: true,
+    );
+    await bills.checkout(
+      cart: Cart(lines: [lineFor(a, 1)]),
+      cashierId: cashierId,
+      cashierName: 'Asha',
+      isGst: false,
+    );
+
+    final all = await reports.salesSummary(ReportRange.today);
+    final gst = await reports.salesSummary(
+      ReportRange.today,
+      filter: GstFilter.gst,
+    );
+    final nonGst = await reports.salesSummary(
+      ReportRange.today,
+      filter: GstFilter.nonGst,
+    );
+
+    expect(all.totalSales, Money.fromRupees(300));
+    expect(all.billCount, 2);
+    expect(gst.totalSales, Money.fromRupees(200));
+    expect(gst.billCount, 1);
+    expect(nonGst.totalSales, Money.fromRupees(100));
+    expect(nonGst.billCount, 1);
+  });
+
+  test('GST and non-GST bills use separate invoice series', () async {
+    final a = await addProduct('Shirt', 100);
+    final gstBill = await bills.checkout(
+      cart: Cart(lines: [lineFor(a, 1)]),
+      cashierId: cashierId,
+      cashierName: 'Asha',
+      isGst: true,
+    );
+    final plainBill = await bills.checkout(
+      cart: Cart(lines: [lineFor(a, 1)]),
+      cashierId: cashierId,
+      cashierName: 'Asha',
+      isGst: false,
+    );
+    expect(gstBill.valueOrNull!.invoiceNo, 'GST-00001');
+    expect(plainBill.valueOrNull!.invoiceNo, 'INV-00001');
   });
 
   test('best sellers are ranked by quantity sold', () async {

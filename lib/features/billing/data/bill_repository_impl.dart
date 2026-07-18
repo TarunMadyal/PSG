@@ -37,6 +37,7 @@ class BillRepositoryImpl implements BillRepository {
     required Cart cart,
     required String cashierId,
     required String cashierName,
+    bool isGst = false,
   }) async {
     if (cart.isEmpty) {
       return const Result.failure(ValidationFailure('The cart is empty.'));
@@ -44,7 +45,7 @@ class BillRepositoryImpl implements BillRepository {
 
     try {
       final receipt = await _db.transaction(() async {
-        final invoiceNo = await _billsDao.nextInvoiceNo();
+        final invoiceNo = await _billsDao.nextInvoiceNo(isGst: isGst);
 
         final customerId = await _customersDao.resolveForSale(
           name: cart.customerName,
@@ -64,6 +65,7 @@ class BillRepositoryImpl implements BillRepository {
             paymentMethod: cart.paymentMethod,
             cashPaidPaise: Value(cart.cashPortion.paise),
             upiPaidPaise: Value(cart.upiPortion.paise),
+            isGst: Value(isGst),
           ),
         );
 
@@ -108,6 +110,7 @@ class BillRepositoryImpl implements BillRepository {
           paymentMethod: cart.paymentMethod,
           cashPaid: cart.cashPortion,
           upiPaid: cart.upiPortion,
+          isGst: isGst,
           customerName: cart.customerName,
           customerPhone: cart.customerPhone,
         );
@@ -160,6 +163,7 @@ class BillRepositoryImpl implements BillRepository {
       paymentMethod: bill.paymentMethod,
       cashPaid: _cashOf(bill),
       upiPaid: _upiOf(bill),
+      isGst: bill.isGst,
       customerName: customerName,
       customerPhone: customerPhone,
     );

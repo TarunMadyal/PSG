@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../../core/utils/formatters.dart';
 import '../../settings/domain/shop_profile.dart';
+import '../domain/report_filter.dart';
 import '../domain/report_models.dart';
 import '../domain/report_range.dart';
 
@@ -16,12 +17,16 @@ Future<Uint8List> buildReportPdf(
   ReportDashboard data,
   ReportRange range,
   ShopProfile shop,
-  DateTime generatedAt,
-) async {
+  DateTime generatedAt, {
+  GstFilter filter = GstFilter.all,
+}) async {
   final doc = pw.Document();
   final s = data.sales;
 
   String rs(dynamic v) => 'Rs ${v.formattedPlain}';
+  final title = filter == GstFilter.all
+      ? '${range.label} Sales Report'
+      : '${range.label} Sales Report (${filter.label})';
 
   doc.addPage(
     pw.Page(
@@ -44,7 +49,7 @@ Future<Uint8List> buildReportPdf(
           pw.Divider(),
           pw.SizedBox(height: 8),
           pw.Text(
-            '${range.label} Sales Report',
+            title,
             style: const pw.TextStyle(
               fontSize: 16,
               fontWeight: pw.FontWeight.bold,

@@ -34,6 +34,7 @@ class BillReceipt {
     required this.paymentMethod,
     required this.cashPaid,
     required this.upiPaid,
+    required this.isGst,
     this.customerName,
     this.customerPhone,
   });
@@ -53,6 +54,9 @@ class BillReceipt {
   /// total and zero (or vice-versa); for a split they hold the breakdown.
   final Money cashPaid;
   final Money upiPaid;
+
+  /// Whether this is a GST (tax invoice) bill vs a plain cash-memo bill.
+  final bool isGst;
 
   final String? customerName;
   final String? customerPhone;
