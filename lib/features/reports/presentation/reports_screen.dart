@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/file_share.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 import '../../printing/application/printing_providers.dart';
 import '../../settings/application/settings_providers.dart';
 import '../application/report_providers.dart';
+import '../data/report_pdf.dart';
 import '../domain/report_models.dart';
 import '../domain/report_range.dart';
 
@@ -22,10 +25,24 @@ class ReportsScreen extends ConsumerWidget {
 
     return Scaffold(
       floatingActionButton: dashboard.hasValue
-          ? FloatingActionButton.extended(
-              onPressed: () => _printReport(context, ref),
-              icon: const Icon(Icons.print_outlined),
-              label: Text('Print ${range.label.toLowerCase()} report'),
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.extended(
+                  heroTag: 'reportPdf',
+                  onPressed: () => _downloadPdf(context, ref),
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('Download PDF'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                FloatingActionButton.extended(
+                  heroTag: 'reportPrint',
+                  onPressed: () => _printReport(context, ref),
+                  icon: const Icon(Icons.print_outlined),
+                  label: Text('Print ${range.label.toLowerCase()} report'),
+                ),
+              ],
             )
           : null,
       body: Column(
@@ -65,6 +82,12 @@ class ReportsScreen extends ConsumerWidget {
       );
       return;
     }
+    final ok = await confirmDialog(
+      context,
+      title: 'Print report?',
+      message: 'Print the ${range.label.toLowerCase()} report to the printer?',
+    );
+    if (!ok) return;
     final shop = await ref.read(settingsRepositoryProvider).get();
     final result =
         await ref.read(printerServiceProvider).printReport(data, range, shop);
@@ -76,6 +99,33 @@ class ReportsScreen extends ConsumerWidget {
         SnackBar(content: Text(failure.message)),
       ),
     );
+  }
+
+  Future<void> _downloadPdf(BuildContext context, WidgetRef ref) async {
+    final range = ref.read(selectedRangeProvider);
+    final data = ref.read(reportDashboardProvider).valueOrNull;
+    final messenger = ScaffoldMessenger.of(context);
+    if (data == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Report is still loading.')),
+      );
+      return;
+    }
+    try {
+      final shop = await ref.read(settingsRepositoryProvider).get();
+      final bytes = await buildReportPdf(data, range, shop, DateTime.now());
+      final stamp = range.label.toLowerCase().replaceAll(' ', '-');
+      await shareBytes(
+        bytes,
+        filename: 'psg-$stamp-report.pdf',
+        subject: '${shop.shopName} — ${range.label} sales report',
+        text: 'Sales report attached.',
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not create the PDF: $e')),
+      );
+    }
   }
 }
 

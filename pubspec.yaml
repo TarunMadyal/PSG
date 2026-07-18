@@ -44,6 +44,10 @@ dependencies:
   # On-screen UPI payment QR (customer scans it from the tablet screen)
   qr_flutter: ^4.1.0
 
+  # PDF generation (sales reports) and sharing files (export/CA/backup)
+  pdf: ^3.11.1
+  share_plus: ^10.1.4
+
   # Icons
   cupertino_icons: ^1.0.8
 

@@ -1,12 +1,18 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/di/providers.dart';
 import '../../../core/enums.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/file_share.dart';
+import '../../../core/utils/formatters.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../printing/application/printing_providers.dart';
 import '../../printing/domain/printer_device.dart';
 import '../application/settings_providers.dart';
+import '../data/sales_export.dart';
 import '../domain/shop_profile.dart';
 
 /// Shop profile, receipt and Bluetooth printer configuration (owner only).
@@ -226,6 +232,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: AppSpacing.sm),
             _PrinterSection(profile: profile),
             const Divider(height: AppSpacing.xxxl),
+            const _SectionTitle('Backup / Export', icon: Icons.backup_outlined),
+            const SizedBox(height: AppSpacing.sm),
+            const _BackupSection(),
+            const Divider(height: AppSpacing.xxxl),
             const _SectionTitle('Passwords', icon: Icons.lock_outline),
             const SizedBox(height: AppSpacing.sm),
             const _PasswordsSection(),
@@ -425,6 +435,66 @@ class _PrinterPickerSheet extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Export a CSV backup of all sales, shared via the system share sheet
+/// (Google Drive, email, WhatsApp) — off-device records safety and CA hand-off.
+class _BackupSection extends ConsumerStatefulWidget {
+  const _BackupSection();
+
+  @override
+  ConsumerState<_BackupSection> createState() => _BackupSectionState();
+}
+
+class _BackupSectionState extends ConsumerState<_BackupSection> {
+  bool _busy = false;
+
+  Future<void> _export() async {
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final db = ref.read(databaseProvider);
+      final csv = await buildSalesCsv(db);
+      final stamp = Formatters.date(DateTime.now()).replaceAll(' ', '-');
+      await shareBytes(
+        utf8.encode(csv),
+        filename: 'psg-sales-$stamp.csv',
+        subject: 'PSG Padmashree Garments — sales export',
+        text: 'Sales records attached.',
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Export every sale to a CSV file you can save to Google Drive, email, '
+          'or send to your CA. Do this regularly so a lost or broken tablet '
+          'never loses your records.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        FilledButton.tonalIcon(
+          onPressed: _busy ? null : _export,
+          icon: _busy
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.download_outlined),
+          label: const Text('Export sales (CSV)'),
+        ),
+      ],
     );
   }
 }
