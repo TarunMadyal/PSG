@@ -124,10 +124,16 @@ class _ReceiptViewState extends ConsumerState<_ReceiptView> {
           if (!r.discount.isZero)
             _total(context, 'Discount', '-${r.discount.formatted}'),
           _total(context, 'Grand total', r.grandTotal.formatted, bold: true),
-          _meta(context, 'Payment', _paymentLabel(r.paymentMethod)),
+          _meta(context, 'Payment', r.paymentMethod.label),
 
-          // ── GST number (hidden above the cash limit) ────────
-          if (shop.shouldPrintGst(r.grandTotal)) ...[
+          // ── Cash + UPI split breakdown ──────────────────────
+          if (r.isSplit) ...[
+            _total(context, 'Cash paid', r.cashPaid.formatted),
+            _total(context, 'UPI paid', r.upiPaid.formatted),
+          ],
+
+          // ── GST number ──────────────────────────────────────
+          if (shop.shouldPrintGst(r.paymentMethod)) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(
               'GSTIN: ${shop.gstNumber!.trim()}',
@@ -139,8 +145,9 @@ class _ReceiptViewState extends ConsumerState<_ReceiptView> {
             ),
           ],
 
-          // ── Scannable UPI payment QR ────────────────────────
-          if (shop.shouldShowUpiQr(r.grandTotal)) _upiQr(context, shop, r),
+          // ── Scannable UPI payment QR (for the UPI portion) ──
+          if (shop.shouldShowUpiQr(r.paymentMethod, r.upiPaid))
+            _upiQr(context, shop, r),
 
           if (_has(shop.footerText)) ...[
             const SizedBox(height: AppSpacing.md),
@@ -192,7 +199,7 @@ class _ReceiptViewState extends ConsumerState<_ReceiptView> {
     final uri = buildUpiUri(
       vpa: shop.upiId!.trim(),
       payeeName: shop.upiPayeeName,
-      amount: r.grandTotal,
+      amount: r.upiPaid,
       note: r.invoiceNo,
     );
     final scheme = Theme.of(context).colorScheme;
@@ -201,7 +208,7 @@ class _ReceiptViewState extends ConsumerState<_ReceiptView> {
       child: Column(
         children: [
           Text(
-            'Scan & Pay ${r.grandTotal.formatted}',
+            'Scan & Pay ${r.upiPaid.formatted}',
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -267,9 +274,3 @@ class _ReceiptViewState extends ConsumerState<_ReceiptView> {
   }
 }
 
-String _paymentLabel(PaymentMethod m) => switch (m) {
-      PaymentMethod.cash => 'Cash',
-      PaymentMethod.card => 'Card',
-      PaymentMethod.upi => 'UPI',
-      PaymentMethod.other => 'Other',
-    };

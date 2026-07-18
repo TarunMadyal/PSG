@@ -28,9 +28,14 @@ void main() {
       expect(const Money(10000).percentOff(100).paise, 0);
     });
 
-    test('formats in Indian rupee locale', () {
-      expect(const Money(129900).formatted, '₹1,299.00');
-      expect(const Money(0).formatted, '₹0.00');
+    test('formats in Indian rupee locale, rounded up to whole rupees', () {
+      expect(const Money(129900).formatted, '₹1,299');
+      expect(const Money(0).formatted, '₹0');
+      // Any paise rounds UP to the next whole rupee (ceiling).
+      expect(const Money(10010).formatted, '₹101'); // 100.10 -> 101
+      expect(const Money(10090).formatted, '₹101'); // 100.90 -> 101
+      expect(const Money(10000).rupeesCeil, 100);
+      expect(const Money(10001).rupeesCeil, 101);
     });
 
     test('zero and sign helpers', () {

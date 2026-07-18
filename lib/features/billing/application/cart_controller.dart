@@ -102,7 +102,18 @@ class CartController extends Notifier<Cart> {
   }
 
   void setPaymentMethod(PaymentMethod method) {
-    state = state.copyWith(paymentMethod: method);
+    // Clear any split cash amount when leaving Cash + UPI.
+    state = state.copyWith(
+      paymentMethod: method,
+      cashPaid: method == PaymentMethod.cashPlusUpi ? state.cashPaid : null,
+    );
+  }
+
+  /// Sets the cash portion for a Cash + UPI split sale.
+  void setCashPaid(Money amount) {
+    state = state.copyWith(
+      cashPaid: amount.isNegative ? Money.zero : amount,
+    );
   }
 
   void setCustomer({String? name, String? phone}) {

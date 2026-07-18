@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import '../../../core/utils/money.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/daos/settings_dao.dart';
 import '../domain/settings_repository.dart';
@@ -29,10 +28,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
         receiptWidth: Value(profile.receiptWidth),
         footerText: Value(_clean(profile.footerText)),
         gstNumber: Value(_clean(profile.gstNumber)),
-        gstCashLimitPaise: Value(profile.gstCashLimit.paise),
         upiId: Value(_clean(profile.upiId)),
         upiName: Value(_clean(profile.upiName)),
-        showUpiQr: Value(profile.printUpiQr),
+        printGstOnCash: Value(profile.printGstOnCash),
       ),
     );
   }
@@ -61,9 +59,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
         printerName: row.printerName,
         printerAddress: row.printerAddress,
         gstNumber: row.gstNumber,
-        gstCashLimit: Money(row.gstCashLimitPaise),
         upiId: row.upiId,
         upiName: row.upiName,
-        printUpiQr: row.showUpiQr,
+        printGstOnCash: row.printGstOnCash,
       );
 }

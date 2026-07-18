@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/enums.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/money.dart';
 import '../../auth/application/auth_controller.dart';
-import '../../auth/domain/app_user.dart';
 import '../../printing/application/printing_providers.dart';
 import '../../printing/domain/printer_device.dart';
 import '../application/settings_providers.dart';
@@ -27,11 +25,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _phone = TextEditingController();
   final _footer = TextEditingController();
   final _gstNumber = TextEditingController();
-  final _cashLimit = TextEditingController();
   final _upiId = TextEditingController();
   final _upiName = TextEditingController();
   int _receiptWidth = 80;
-  bool _printUpiQr = true;
+  bool _printGstOnCash = false;
 
   bool _loaded = false;
   bool _saving = false;
@@ -43,7 +40,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _phone.dispose();
     _footer.dispose();
     _gstNumber.dispose();
-    _cashLimit.dispose();
     _upiId.dispose();
     _upiName.dispose();
     super.dispose();
@@ -57,17 +53,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _phone.text = p.phone ?? '';
     _footer.text = p.footerText ?? '';
     _gstNumber.text = p.gstNumber ?? '';
-    _cashLimit.text = p.gstCashLimit.rupees.toStringAsFixed(0);
     _upiId.text = p.upiId ?? '';
     _upiName.text = p.upiName ?? '';
     _receiptWidth = p.receiptWidth;
-    _printUpiQr = p.printUpiQr;
+    _printGstOnCash = p.printGstOnCash;
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
     final current = await ref.read(settingsRepositoryProvider).get();
-    final limit = double.tryParse(_cashLimit.text.trim()) ?? 10000;
     await ref.read(settingsRepositoryProvider).save(
           current.copyWith(
             shopName: _name.text.trim().isEmpty
@@ -78,10 +72,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             footerText: _footer.text.trim(),
             receiptWidth: _receiptWidth,
             gstNumber: _gstNumber.text.trim(),
-            gstCashLimit: Money.fromRupees(limit),
             upiId: _upiId.text.trim(),
             upiName: _upiName.text.trim(),
-            printUpiQr: _printUpiQr,
+            printGstOnCash: _printGstOnCash,
           ),
         );
     if (!mounted) return;
@@ -166,8 +159,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const _SectionTitle('Tax / GST', icon: Icons.receipt_long_outlined),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'The GST number is printed on the bill only when the bill total is '
-              'at or below the cash limit. Bills above the limit hide it.',
+              'UPI and Cash+UPI bills always print the GST number. For cash-only '
+              'bills, use the toggle below.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -179,26 +172,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 hintText: '29AEXPJ3122K1Z1',
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _cashLimit,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Cash limit (₹)',
-                hintText: '10000',
-                prefixText: '₹ ',
-                helperText: 'Hide GST number on bills above this amount',
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Print GST Number on Cash Bills'),
+              subtitle: const Text(
+                'Off: cash bills do not show the GST number. UPI bills always do.',
               ),
+              value: _printGstOnCash,
+              onChanged: (v) => setState(() => _printGstOnCash = v),
             ),
 
             const Divider(height: AppSpacing.xxxl),
             const _SectionTitle('UPI payment QR', icon: Icons.qr_code_2),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'A QR that fills in the exact bill amount when the customer scans '
-              'it with any UPI app (Google Pay, PhonePe, etc.). Shown on screen '
-              'and printed on the bill.',
+              'A QR that fills in the amount due when the customer scans it with '
+              'any UPI app. It is shown and printed automatically for UPI and '
+              'Cash+UPI bills, never for cash-only bills.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -218,12 +208,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 hintText: 'Defaults to shop name',
               ),
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Show payment QR on bills'),
-              value: _printUpiQr,
-              onChanged: (v) => setState(() => _printUpiQr = v),
-            ),
 
             const SizedBox(height: AppSpacing.lg),
             FilledButton.icon(
@@ -242,9 +226,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: AppSpacing.sm),
             _PrinterSection(profile: profile),
             const Divider(height: AppSpacing.xxxl),
-            const _SectionTitle('Users', icon: Icons.people_outline),
+            const _SectionTitle('Passwords', icon: Icons.lock_outline),
             const SizedBox(height: AppSpacing.sm),
-            const _UsersSection(),
+            const _PasswordsSection(),
           ],
         );
       },
@@ -445,114 +429,66 @@ class _PrinterPickerSheet extends ConsumerWidget {
   }
 }
 
-/// Owner-only: lists all users and lets the owner add / deactivate staff.
-class _UsersSection extends ConsumerWidget {
-  const _UsersSection();
+/// Admin-only: change the two access passwords (Admin and Staff).
+class _PasswordsSection extends ConsumerWidget {
+  const _PasswordsSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final usersAsync = ref.watch(usersListProvider);
-    final currentUser = ref.watch(currentUserProvider);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'People who can log in to this device.',
+          'Two passwords control access. The Admin password opens full access; '
+          'the Staff password opens billing only. The password entered at login '
+          'decides which opens.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: AppSpacing.md),
-        usersAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Text('Could not load users: $e'),
-          data: (users) => Card(
-            child: Column(
-              children: [
-                for (final user in users)
-                  _UserTile(user: user, currentUserId: currentUser?.id),
-              ],
-            ),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings_outlined),
+                title: const Text('Admin password'),
+                subtitle: const Text('Full access'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _change(context, ref, UserRole.owner, 'Admin'),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.badge_outlined),
+                title: const Text('Staff password'),
+                subtitle: const Text('Billing only'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _change(context, ref, UserRole.staff, 'Staff'),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        OutlinedButton.icon(
-          onPressed: () => showModalBottomSheet<void>(
-            context: context,
-            showDragHandle: true,
-            isScrollControlled: true,
-            builder: (_) => const _AddUserSheet(),
-          ),
-          icon: const Icon(Icons.person_add_outlined),
-          label: const Text('Add staff account'),
         ),
       ],
     );
   }
-}
 
-class _UserTile extends ConsumerWidget {
-  const _UserTile({required this.user, required this.currentUserId});
-
-  final AppUser user;
-  final String? currentUserId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isMe = user.id == currentUserId;
-    final scheme = Theme.of(context).colorScheme;
-
-    return ListTile(
-      onTap: () => _rename(context, ref),
-      leading: CircleAvatar(
-        backgroundColor: user.isOwner ? scheme.primaryContainer : scheme.secondaryContainer,
-        child: Text(
-          user.initials,
-          style: TextStyle(
-            color: user.isOwner ? scheme.onPrimaryContainer : scheme.onSecondaryContainer,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-          ),
-        ),
-      ),
-      title: Text(
-        user.name + (isMe ? ' (you)' : ''),
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text('${user.isOwner ? 'Owner' : 'Staff'} · tap to rename'),
-      trailing: isMe
-          ? const Chip(label: Text('You'))
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Switch(
-                  value: user.isActive,
-                  onChanged: (active) async {
-                    await ref
-                        .read(authControllerProvider.notifier)
-                        .setUserActive(user.id, active: active);
-                  },
-                ),
-                IconButton(
-                  tooltip: 'Remove account',
-                  icon: Icon(Icons.delete_outline, color: scheme.error),
-                  onPressed: () => _confirmDelete(context, ref),
-                ),
-              ],
-            ),
-    );
-  }
-
-  Future<void> _rename(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController(text: user.name);
-    final newName = await showDialog<String>(
+  Future<void> _change(
+    BuildContext context,
+    WidgetRef ref,
+    UserRole role,
+    String label,
+  ) async {
+    final controller = TextEditingController();
+    final password = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Rename account'),
+        title: Text('Change $label password'),
         content: TextField(
           controller: controller,
           autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Name'),
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'New password',
+            helperText: 'At least 4 characters',
+          ),
         ),
         actions: [
           TextButton(
@@ -567,180 +503,17 @@ class _UserTile extends ConsumerWidget {
       ),
     );
     controller.dispose();
-    if (newName == null || !context.mounted) return;
+    if (password == null || !context.mounted) return;
     final result = await ref
         .read(authControllerProvider.notifier)
-        .renameUser(user.id, newName);
+        .changePassword(role: role, password: password);
     if (!context.mounted) return;
     result.fold(
-      (_) {},
+      (_) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$label password updated.')),
+      ),
       (failure) => ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(failure.message)),
-      ),
-    );
-  }
-
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Remove account?'),
-        content: Text(
-          '"${user.name}" will no longer be able to log in. Past bills they '
-          'created are kept.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    final result =
-        await ref.read(authControllerProvider.notifier).deleteUser(user.id);
-    if (!context.mounted) return;
-    result.fold(
-      (_) {},
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(failure.message)),
-      ),
-    );
-  }
-}
-
-/// Bottom sheet form to add a new staff or owner account.
-class _AddUserSheet extends ConsumerStatefulWidget {
-  const _AddUserSheet();
-
-  @override
-  ConsumerState<_AddUserSheet> createState() => _AddUserSheetState();
-}
-
-class _AddUserSheetState extends ConsumerState<_AddUserSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameFocus = FocusNode();
-  final _name = TextEditingController();
-  final _pin = TextEditingController();
-  bool _isOwner = false;
-  bool _saving = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _pin.dispose();
-    _nameFocus.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-
-    final result = await ref.read(authControllerProvider.notifier).addUser(
-          name: _name.text.trim(),
-          pin: _pin.text,
-          isOwner: _isOwner,
-        );
-
-    if (!mounted) return;
-
-    result.fold(
-      (_) => Navigator.of(context).pop(),
-      (failure) => setState(() {
-        _saving = false;
-        _error = failure.message;
-      }),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        0,
-        AppSpacing.lg,
-        AppSpacing.lg + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Add account',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            TextFormField(
-              controller: _name,
-              focusNode: _nameFocus,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Full name'),
-              autofocus: true,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Name is required.' : null,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextFormField(
-              controller: _pin,
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              maxLength: 6,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'PIN (4–6 digits)',
-                counterText: '',
-              ),
-              validator: (v) {
-                if (v == null || v.length < 4) {
-                  return 'PIN must be at least 4 digits.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Owner access'),
-              subtitle: const Text('Can manage products, settings and reports.'),
-              value: _isOwner,
-              onChanged: (v) => setState(() => _isOwner = v),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.lg),
-            FilledButton.icon(
-              onPressed: _saving ? null : _submit,
-              icon: _saving
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.person_add_outlined),
-              label: const Text('Create account'),
-            ),
-          ],
-        ),
       ),
     );
   }

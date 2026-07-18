@@ -32,6 +32,8 @@ class BillReceipt {
     required this.gst,
     required this.grandTotal,
     required this.paymentMethod,
+    required this.cashPaid,
+    required this.upiPaid,
     this.customerName,
     this.customerPhone,
   });
@@ -46,10 +48,19 @@ class BillReceipt {
   final Money gst;
   final Money grandTotal;
   final PaymentMethod paymentMethod;
+
+  /// Amount paid in cash and via UPI. For pure cash/UPI these are the whole
+  /// total and zero (or vice-versa); for a split they hold the breakdown.
+  final Money cashPaid;
+  final Money upiPaid;
+
   final String? customerName;
   final String? customerPhone;
 
   int get itemCount => lines.fold(0, (sum, l) => sum + l.qty);
+
+  /// Whether this bill was paid as a Cash + UPI split (both parts non-zero).
+  bool get isSplit => paymentMethod == PaymentMethod.cashPlusUpi;
 }
 
 /// Lightweight summary for the recent-transactions list.

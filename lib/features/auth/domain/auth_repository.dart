@@ -1,32 +1,30 @@
+import '../../../core/enums.dart';
 import '../../../core/error/result.dart';
 import 'app_user.dart';
 
-/// Contract for authentication and account management. Backed locally by the
-/// Drift database (offline-first); the cloud mirror is reconciled by sync.
+/// Contract for authentication and the two-password access model. Backed locally
+/// by the Drift database (offline-first).
+///
+/// There are exactly two passwords: one for the Admin (owner) and one for Staff.
+/// The password entered at login determines the role — there is no role picker.
 abstract interface class AuthRepository {
-  /// Whether any account exists yet (false triggers first-run owner setup).
+  /// Whether any account exists yet (false triggers first-run setup).
   Future<bool> hasAnyUser();
 
-  /// Active accounts available on the login screen's user picker.
-  Future<List<AppUser>> listLoginableUsers();
+  /// Signs in by matching [password] against the stored account passwords.
+  /// Returns the matching account (whose role decides the interface shown).
+  Future<Result<AppUser>> login(String password);
 
-  /// Verifies [pin] for [userId]. On success returns the authenticated user.
-  Future<Result<AppUser>> loginWithPin({
-    required String userId,
-    required String pin,
+  /// First-run setup: creates the Admin (owner) and Staff accounts.
+  Future<Result<void>> createInitialAccounts({
+    required String adminPassword,
+    required String staffPassword,
   });
 
-  /// Creates the first (owner) account during first-run setup.
-  Future<Result<AppUser>> createOwner({
-    required String name,
-    required String pin,
-  });
-
-  /// Creates an additional account (owner-only; enforced by the caller).
-  Future<Result<AppUser>> createUser({
-    required String name,
-    required String pin,
-    required bool isOwner,
-    String? phone,
+  /// Changes the password for the [role] account (Admin or Staff), creating the
+  /// Staff account if it does not exist yet.
+  Future<Result<void>> setPassword({
+    required UserRole role,
+    required String password,
   });
 }

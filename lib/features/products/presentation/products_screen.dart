@@ -29,6 +29,10 @@ class ProductsScreen extends ConsumerWidget {
             )
           : null,
       body: catalog.when(
+        // Keep the last-loaded catalog visible during reloads / transient
+        // stream errors so the list never intermittently disappears.
+        skipLoadingOnReload: true,
+        skipError: true,
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Could not load products: $e')),
         data: (_) => _CatalogBody(canManage: canManage),

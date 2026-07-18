@@ -44,7 +44,7 @@ void main() {
     await pumpScreen(tester, caps: Capability.values.toSet());
 
     expect(find.text('Linen Kurta'), findsOneWidget);
-    expect(find.text('₹499.00'), findsOneWidget);
+    expect(find.text('₹499'), findsOneWidget);
     expect(
       find.widgetWithText(FloatingActionButton, 'Add product'),
       findsOneWidget,

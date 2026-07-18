@@ -15,6 +15,10 @@ extension type const Money(int paise) implements Object {
 
   double get rupees => paise / 100;
 
+  /// The amount rounded UP to the next whole rupee (ceiling). Bills never show
+  /// decimals, so e.g. 100.1 and 100.9 both display as 101.
+  int get rupeesCeil => (paise / 100).ceil();
+
   Money operator +(Money other) => Money(paise + other.paise);
   Money operator -(Money other) => Money(paise - other.paise);
   Money operator *(int qty) => Money(paise * qty);
@@ -31,21 +35,23 @@ extension type const Money(int paise) implements Object {
   Money percentOff(double percent) =>
       Money((paise * (1 - percent / 100)).round());
 
-  /// `₹1,299.00` — Indian-locale grouped currency string for receipts/UI.
-  String get formatted => _formatter.format(rupees);
+  /// `₹1,299` — Indian-locale grouped currency string, rounded up to a whole
+  /// rupee (no decimals) for clean-looking bills.
+  String get formatted => _formatter.format(rupeesCeil);
 
-  /// `1,299.00` without the currency symbol (useful for aligned tables).
-  String get formattedPlain => _plainFormatter.format(rupees);
+  /// `1,299` without the currency symbol (useful for aligned tables), rounded
+  /// up to a whole rupee.
+  String get formattedPlain => _plainFormatter.format(rupeesCeil);
 
   static final NumberFormat _formatter = NumberFormat.currency(
     locale: AppConfig.currencyLocale,
     symbol: AppConfig.currencySymbol,
-    decimalDigits: 2,
+    decimalDigits: 0,
   );
 
   static final NumberFormat _plainFormatter = NumberFormat.currency(
     locale: AppConfig.currencyLocale,
     symbol: '',
-    decimalDigits: 2,
+    decimalDigits: 0,
   );
 }

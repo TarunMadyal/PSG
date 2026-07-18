@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../../core/enums.dart';
 import '../../../core/error/failure.dart';
 import '../../../core/error/result.dart';
 import '../../../core/utils/app_logger.dart';
@@ -61,6 +62,8 @@ class BillRepositoryImpl implements BillRepository {
             gstPaise: Value(cart.gst.paise),
             grandTotalPaise: Value(cart.grandTotal.paise),
             paymentMethod: cart.paymentMethod,
+            cashPaidPaise: Value(cart.cashPortion.paise),
+            upiPaidPaise: Value(cart.upiPortion.paise),
           ),
         );
 
@@ -103,6 +106,8 @@ class BillRepositoryImpl implements BillRepository {
           gst: cart.gst,
           grandTotal: cart.grandTotal,
           paymentMethod: cart.paymentMethod,
+          cashPaid: cart.cashPortion,
+          upiPaid: cart.upiPortion,
           customerName: cart.customerName,
           customerPhone: cart.customerPhone,
         );
@@ -153,9 +158,27 @@ class BillRepositoryImpl implements BillRepository {
       gst: Money(bill.gstPaise),
       grandTotal: Money(bill.grandTotalPaise),
       paymentMethod: bill.paymentMethod,
+      cashPaid: _cashOf(bill),
+      upiPaid: _upiOf(bill),
       customerName: customerName,
       customerPhone: customerPhone,
     );
+  }
+
+  /// Cash portion for a stored bill; older bills (null columns) derive it from
+  /// the payment method.
+  Money _cashOf(Bill bill) {
+    if (bill.cashPaidPaise != null) return Money(bill.cashPaidPaise!);
+    return bill.paymentMethod == PaymentMethod.upi
+        ? Money.zero
+        : Money(bill.grandTotalPaise);
+  }
+
+  Money _upiOf(Bill bill) {
+    if (bill.upiPaidPaise != null) return Money(bill.upiPaidPaise!);
+    return bill.paymentMethod == PaymentMethod.upi
+        ? Money(bill.grandTotalPaise)
+        : Money.zero;
   }
 
   @override

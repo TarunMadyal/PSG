@@ -10,8 +10,11 @@ import '../../../data/local/daos/users_dao.dart';
 import '../domain/app_user.dart';
 import '../domain/auth_repository.dart';
 
-/// Local (offline-first) implementation of [AuthRepository] backed by the Drift
-/// [UsersDao]. PINs are verified against PBKDF2 hashes stored on-device.
+/// Local (offline-first) implementation of the two-password access model.
+///
+/// The password entered at login is checked against every active account's
+/// stored hash; the first match's role decides which interface opens. Admin is
+/// checked before Staff so it always wins if the two ever share a password.
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({required UsersDao usersDao, required PinHasher hasher})
       : _usersDao = usersDao,
@@ -20,32 +23,26 @@ class AuthRepositoryImpl implements AuthRepository {
   final UsersDao _usersDao;
   final PinHasher _hasher;
 
-  static const int _minPinLength = 4;
+  static const int _minLength = 4;
+  static const String _adminName = 'Admin';
+  static const String _staffName = 'Staff';
 
   @override
   Future<bool> hasAnyUser() => _usersDao.hasAny();
 
   @override
-  Future<List<AppUser>> listLoginableUsers() async {
-    final rows = await _usersDao.activeUsers();
-    return rows.map(_toDomain).toList();
-  }
-
-  @override
-  Future<Result<AppUser>> loginWithPin({
-    required String userId,
-    required String pin,
-  }) async {
+  Future<Result<AppUser>> login(String password) async {
     try {
-      final user = await _usersDao.getById(userId);
-      if (user == null || user.isDeleted || !user.isActive) {
-        return const Result.failure(AuthFailure('Account not available.'));
+      final users = await _usersDao.activeUsers();
+      // Admin (owner) first, then staff — deterministic if passwords collide.
+      users.sort((a, b) => a.role == UserRole.owner ? -1 : 1);
+      for (final user in users) {
+        final hash = user.pinHash;
+        if (hash != null && _hasher.verify(password, hash)) {
+          return Result.success(_toDomain(user));
+        }
       }
-      final hash = user.pinHash;
-      if (hash == null || !_hasher.verify(pin, hash)) {
-        return const Result.failure(AuthFailure('Incorrect PIN.'));
-      }
-      return Result.success(_toDomain(user));
+      return const Result.failure(AuthFailure('Incorrect password.'));
     } catch (e, st) {
       AppLogger.e('Login failed', error: e, stackTrace: st);
       return const Result.failure(
@@ -55,43 +52,74 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Result<AppUser>> createOwner({
-    required String name,
-    required String pin,
-  }) {
-    return createUser(name: name, pin: pin, isOwner: true);
+  Future<Result<void>> createInitialAccounts({
+    required String adminPassword,
+    required String staffPassword,
+  }) async {
+    if (adminPassword.length < _minLength || staffPassword.length < _minLength) {
+      return const Result.failure(
+        ValidationFailure('Each password must be at least $_minLength characters.'),
+      );
+    }
+    if (adminPassword == staffPassword) {
+      return const Result.failure(
+        ValidationFailure('The Admin and Staff passwords must be different.'),
+      );
+    }
+    try {
+      await _usersDao.save(
+        UsersCompanion.insert(
+          name: _adminName,
+          role: UserRole.owner,
+          pinHash: Value(_hasher.hash(adminPassword)),
+        ),
+      );
+      await _usersDao.save(
+        UsersCompanion.insert(
+          name: _staffName,
+          role: UserRole.staff,
+          pinHash: Value(_hasher.hash(staffPassword)),
+        ),
+      );
+      return const Result.success(null);
+    } catch (e, st) {
+      AppLogger.e('Create accounts failed', error: e, stackTrace: st);
+      return const Result.failure(
+        UnexpectedFailure('Could not create the accounts.'),
+      );
+    }
   }
 
   @override
-  Future<Result<AppUser>> createUser({
-    required String name,
-    required String pin,
-    required bool isOwner,
-    String? phone,
+  Future<Result<void>> setPassword({
+    required UserRole role,
+    required String password,
   }) async {
-    final trimmedName = name.trim();
-    if (trimmedName.isEmpty) {
-      return const Result.failure(ValidationFailure('Name is required.'));
-    }
-    if (pin.length < _minPinLength) {
+    if (password.length < _minLength) {
       return const Result.failure(
-        ValidationFailure('PIN must be at least $_minPinLength digits.'),
+        ValidationFailure('Password must be at least $_minLength characters.'),
       );
     }
-
     try {
-      final companion = UsersCompanion.insert(
-        name: trimmedName,
-        role: isOwner ? UserRole.owner : UserRole.staff,
-        phone: Value(phone),
-        pinHash: Value(_hasher.hash(pin)),
-      );
-      final created = await _usersDao.save(companion);
-      return Result.success(_toDomain(created));
+      final users = await _usersDao.activeUsers();
+      final existing = users.where((u) => u.role == role).toList();
+      final hash = _hasher.hash(password);
+      if (existing.isEmpty) {
+        await _usersDao.save(
+          UsersCompanion.insert(
+            name: role == UserRole.owner ? _adminName : _staffName,
+            role: role,
+            pinHash: Value(hash),
+          ),
+        );
+      } else {
+        await _usersDao.setPinHash(existing.first.id, hash);
+      }
+      return const Result.success(null);
     } catch (e, st) {
-      AppLogger.e('Create user failed', error: e, stackTrace: st);
+      AppLogger.e('Set password failed', error: e, stackTrace: st);
       return const Result.failure(
-        UnexpectedFailure('Could not create the account.'),
+        UnexpectedFailure('Could not update the password.'),
       );
     }
   }

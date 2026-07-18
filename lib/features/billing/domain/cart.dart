@@ -43,6 +43,7 @@ class Cart {
     this.lines = const [],
     this.billDiscount = Money.zero,
     this.paymentMethod = PaymentMethod.cash,
+    this.cashPaid,
     this.customerName,
     this.customerPhone,
   });
@@ -50,6 +51,11 @@ class Cart {
   final List<CartLine> lines;
   final Money billDiscount;
   final PaymentMethod paymentMethod;
+
+  /// For a Cash + UPI split: how much the customer pays in cash. The rest is
+  /// collected via UPI. Null for pure cash / pure UPI sales.
+  final Money? cashPaid;
+
   final String? customerName;
   final String? customerPhone;
 
@@ -79,10 +85,33 @@ class Cart {
     return total.isNegative ? Money.zero : total;
   }
 
+  /// How much of [grandTotal] is collected in cash, given [paymentMethod].
+  Money get cashPortion => switch (paymentMethod) {
+        PaymentMethod.upi => Money.zero,
+        PaymentMethod.cashPlusUpi => _clampedCash,
+        _ => grandTotal, // cash (and legacy card/other)
+      };
+
+  /// How much of [grandTotal] is collected via UPI, given [paymentMethod].
+  Money get upiPortion => switch (paymentMethod) {
+        PaymentMethod.upi => grandTotal,
+        PaymentMethod.cashPlusUpi => grandTotal - _clampedCash,
+        _ => Money.zero,
+      };
+
+  /// Cash entered for a split, clamped to [0, grandTotal].
+  Money get _clampedCash {
+    final c = cashPaid ?? Money.zero;
+    if (c.isNegative) return Money.zero;
+    if (c > grandTotal) return grandTotal;
+    return c;
+  }
+
   Cart copyWith({
     List<CartLine>? lines,
     Money? billDiscount,
     PaymentMethod? paymentMethod,
+    Object? cashPaid = _sentinel,
     Object? customerName = _sentinel,
     Object? customerPhone = _sentinel,
   }) {
@@ -90,6 +119,7 @@ class Cart {
       lines: lines ?? this.lines,
       billDiscount: billDiscount ?? this.billDiscount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      cashPaid: cashPaid == _sentinel ? this.cashPaid : cashPaid as Money?,
       customerName: customerName == _sentinel
           ? this.customerName
           : customerName as String?,

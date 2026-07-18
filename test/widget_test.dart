@@ -23,12 +23,12 @@ void main() {
 
   tearDown(() async => db.close());
 
-  Future<void> seedUser(String name, UserRole role) {
+  Future<void> seedUser(String name, UserRole role, String password) {
     return db.usersDao.save(
       UsersCompanion.insert(
         name: name,
         role: role,
-        pinHash: Value(hasher.hash('1234')),
+        pinHash: Value(hasher.hash(password)),
       ),
     );
   }
@@ -49,18 +49,12 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> loginWithPin(WidgetTester tester) async {
-    for (final d in ['1', '2', '3', '4']) {
-      await tester.tap(find.text(d));
-      await tester.pump();
-    }
+  Future<void> login(WidgetTester tester, String password) async {
+    await tester.enterText(find.byType(TextField), password);
     await tester.tap(find.widgetWithText(FilledButton, 'Log in'));
     await tester.pumpAndSettle();
   }
 
-  // Unmounts the app so Drift stream providers dispose, then flushes the
-  // zero-duration close timer Drift schedules — otherwise the test's fake-async
-  // reports "a Timer is still pending after the widget tree was disposed".
   Future<void> disposeApp(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 10));
@@ -68,24 +62,21 @@ void main() {
 
   testWidgets('fresh install shows first-run setup', (tester) async {
     await pumpTablet(tester);
-    expect(find.text('Set up your shop'), findsOneWidget);
+    expect(find.text('Set up your passwords'), findsOneWidget);
   });
 
-  testWidgets('with accounts present, shows the login screen', (tester) async {
-    await seedUser('Asha', UserRole.owner);
+  testWidgets('with accounts present, shows the password login', (tester) async {
+    await seedUser('Admin', UserRole.owner, 'admin1');
     await pumpTablet(tester);
-    expect(find.text('Welcome back'), findsOneWidget);
-    expect(find.text('Asha'), findsWidgets);
+    expect(find.text('Enter password'), findsOneWidget);
   });
 
-  testWidgets('owner login lands on billing with full nav', (tester) async {
-    await seedUser('Asha', UserRole.owner);
+  testWidgets('admin password lands on billing with full nav', (tester) async {
+    await seedUser('Admin', UserRole.owner, 'admin1');
     await pumpTablet(tester);
-    await loginWithPin(tester);
+    await login(tester, 'admin1');
 
-    // Lands on the billing screen (catalog search field present).
     expect(find.text('Search products to add'), findsOneWidget);
-    // Owner sees owner-only destinations.
     expect(find.text('Settings'), findsWidgets);
     expect(find.text('Reports'), findsWidgets);
     expect(find.text('Products'), findsWidgets);
@@ -93,14 +84,13 @@ void main() {
     await disposeApp(tester);
   });
 
-  testWidgets('staff login hides owner-only navigation', (tester) async {
-    await seedUser('Ravi', UserRole.staff);
+  testWidgets('staff password hides owner-only navigation', (tester) async {
+    await seedUser('Staff', UserRole.staff, 'staff1');
     await pumpTablet(tester);
-    await loginWithPin(tester);
+    await login(tester, 'staff1');
 
     expect(find.text('Search products to add'), findsOneWidget);
     expect(find.text('Billing'), findsWidgets);
-    // Owner-only destinations are not shown to staff.
     expect(find.text('Settings'), findsNothing);
     expect(find.text('Reports'), findsNothing);
     expect(find.text('Products'), findsNothing);

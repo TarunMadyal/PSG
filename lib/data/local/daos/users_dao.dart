@@ -52,6 +52,18 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
     );
   }
 
+  /// Updates a user's password hash (used to change the Admin/Staff password).
+  Future<void> setPinHash(String userId, String pinHash) {
+    return _patch(
+      userId,
+      (existing) => UsersCompanion(
+        pinHash: Value(pinHash),
+        updatedAt: Value(DateTime.now().toUtc()),
+        version: Value(existing.version + 1),
+      ),
+    );
+  }
+
   /// Renames a user (works for staff and owner). Trims and ignores blanks.
   Future<void> rename(String userId, String name) {
     final trimmed = name.trim();

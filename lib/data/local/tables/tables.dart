@@ -40,9 +40,14 @@ class AppSettings extends Table with SyncColumns {
   TextColumn get gstNumber => text().nullable()();
 
   /// Bills at or below this amount (in paise) print the GST number; bills
-  /// ABOVE it hide the GST number. Owner-editable. Default ₹10,000.
+  /// ABOVE it hide the GST number. Legacy — replaced by [printGstOnCash]; kept
+  /// so existing databases don't need a destructive migration.
   IntColumn get gstCashLimitPaise =>
       integer().withDefault(const Constant(1000000))();
+
+  /// Whether to print the GST number on CASH bills. Off by default. UPI and
+  /// Cash+UPI bills always print the GST number (and the QR).
+  BoolColumn get printGstOnCash => boolean().withDefault(const Constant(false))();
 
   /// The shop's UPI ID (VPA) for the payment QR, e.g. "name@okbizaxis".
   /// Default seeded on first run; nullable so the owner can clear it.
@@ -97,6 +102,11 @@ class Bills extends Table with SyncColumns {
   IntColumn get discountPaise => integer().withDefault(const Constant(0))();
   IntColumn get gstPaise => integer().withDefault(const Constant(0))();
   IntColumn get grandTotalPaise => integer().withDefault(const Constant(0))();
+
+  /// For split (Cash + UPI) payments: how much was paid in cash vs UPI. Null on
+  /// older bills; then the split is derived from [paymentMethod] at read time.
+  IntColumn get cashPaidPaise => integer().nullable()();
+  IntColumn get upiPaidPaise => integer().nullable()();
 
   TextColumn get paymentMethod => textEnum<PaymentMethod>()();
   TextColumn get status =>

@@ -116,7 +116,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                       title: Text(b.invoiceNo),
                       subtitle: Text(
                         '${Formatters.dateTime(b.billedAt)}  ·  '
-                        '${_payLabel(b.paymentMethod)}',
+                        '${b.paymentMethod.label}',
                       ),
                       trailing: Text(
                         b.grandTotal.formatted,
@@ -150,10 +150,4 @@ class CustomerDetailScreen extends ConsumerWidget {
     await showReceiptDialog(context, receipt);
   }
 
-  String _payLabel(PaymentMethod m) => switch (m) {
-        PaymentMethod.cash => 'Cash',
-        PaymentMethod.card => 'Card',
-        PaymentMethod.upi => 'UPI',
-        PaymentMethod.other => 'Other',
-      };
 }

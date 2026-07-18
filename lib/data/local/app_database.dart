@@ -53,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -89,6 +89,12 @@ class AppDatabase extends _$AppDatabase {
               "gst_number = COALESCE(gst_number, '29AEXPJ3122K1Z1'), "
               "upi_id = COALESCE(upi_id, '8123426350@okbizaxis')",
             );
+          }
+          // v5: split (Cash + UPI) payment amounts + GST-on-cash toggle.
+          if (from < 5) {
+            await m.addColumn(bills, bills.cashPaidPaise);
+            await m.addColumn(bills, bills.upiPaidPaise);
+            await m.addColumn(appSettings, appSettings.printGstOnCash);
           }
         },
         // Note: FK enforcement is enabled via the raw-connection `setup`

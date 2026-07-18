@@ -10,12 +10,36 @@ enum UserRole {
   staff,
 }
 
-/// How a bill was paid.
+/// How a bill was paid. The selectable options are cash, upi and cashPlusUpi;
+/// `card`/`other` are legacy values kept only so older bills still parse.
 enum PaymentMethod {
   cash,
-  card,
   upi,
+  cashPlusUpi,
+  card,
   other,
+}
+
+/// The payment methods a cashier can pick for a new sale.
+const List<PaymentMethod> kSelectablePaymentMethods = [
+  PaymentMethod.cash,
+  PaymentMethod.upi,
+  PaymentMethod.cashPlusUpi,
+];
+
+extension PaymentMethodX on PaymentMethod {
+  /// A UPI payment is expected (in full or in part), so a QR should be shown.
+  bool get involvesUpi =>
+      this == PaymentMethod.upi || this == PaymentMethod.cashPlusUpi;
+
+  /// Human label for the bill / UI.
+  String get label => switch (this) {
+        PaymentMethod.cash => 'Cash',
+        PaymentMethod.upi => 'UPI',
+        PaymentMethod.cashPlusUpi => 'Cash + UPI',
+        PaymentMethod.card => 'Card',
+        PaymentMethod.other => 'Other',
+      };
 }
 
 /// Lifecycle state of a bill. `voided` (not `void`, a Dart keyword) marks a

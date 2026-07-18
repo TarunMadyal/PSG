@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/enums.dart';
@@ -99,6 +100,8 @@ class _CartPanelState extends ConsumerState<CartPanel> {
           const Divider(height: 1),
           _CustomerField(cart: cart),
           _PaymentSelector(selected: cart.paymentMethod),
+          if (cart.paymentMethod == PaymentMethod.cashPlusUpi)
+            _SplitCashField(cart: cart),
           Container(
             color: scheme.surfaceContainerHighest,
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -127,7 +130,7 @@ class _CartPanelState extends ConsumerState<CartPanel> {
                 const SizedBox(height: AppSpacing.xs),
                 _totalRow(context, 'Total', cart.grandTotal, emphasize: true),
                 const SizedBox(height: AppSpacing.md),
-                _UpiPayButton(amount: cart.grandTotal),
+                _UpiPayButton(amount: cart.upiPortion),
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -369,16 +372,86 @@ class _PaymentSelector extends ConsumerWidget {
         0,
       ),
       child: SegmentedButton<PaymentMethod>(
-        segments: const [
-          ButtonSegment(value: PaymentMethod.cash, label: Text('Cash')),
-          ButtonSegment(value: PaymentMethod.upi, label: Text('UPI')),
-          ButtonSegment(value: PaymentMethod.card, label: Text('Card')),
-          ButtonSegment(value: PaymentMethod.other, label: Text('Other')),
+        segments: [
+          for (final m in kSelectablePaymentMethods)
+            ButtonSegment(value: m, label: Text(m.label)),
         ],
         selected: {selected},
         showSelectedIcon: false,
         onSelectionChanged: (s) =>
             ref.read(cartProvider.notifier).setPaymentMethod(s.first),
+      ),
+    );
+  }
+}
+
+/// Cash-received input for a Cash + UPI split. The UPI balance is computed and
+/// shown live; the "Pay by UPI" button and the bill use that balance.
+class _SplitCashField extends ConsumerStatefulWidget {
+  const _SplitCashField({required this.cart});
+
+  final Cart cart;
+
+  @override
+  ConsumerState<_SplitCashField> createState() => _SplitCashFieldState();
+}
+
+class _SplitCashFieldState extends ConsumerState<_SplitCashField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    final cash = widget.cart.cashPaid;
+    _controller = TextEditingController(
+      text: (cash == null || cash.isZero) ? '' : '${cash.rupeesCeil}',
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final balance = widget.cart.upiPortion;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: const InputDecoration(
+              labelText: 'Cash received',
+              prefixText: '₹ ',
+              isDense: true,
+            ),
+            onChanged: (v) => ref
+                .read(cartProvider.notifier)
+                .setCashPaid(Money.fromRupees(double.tryParse(v) ?? 0)),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'Balance via UPI: ${balance.formatted}',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }

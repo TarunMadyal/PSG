@@ -737,6 +737,16 @@ class $AppSettingsTable extends AppSettings
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(1000000));
+  static const VerificationMeta _printGstOnCashMeta =
+      const VerificationMeta('printGstOnCash');
+  @override
+  late final GeneratedColumn<bool> printGstOnCash = GeneratedColumn<bool>(
+      'print_gst_on_cash', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("print_gst_on_cash" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _upiIdMeta = const VerificationMeta('upiId');
   @override
   late final GeneratedColumn<String> upiId = GeneratedColumn<String>(
@@ -775,6 +785,7 @@ class $AppSettingsTable extends AppSettings
         printerAddress,
         gstNumber,
         gstCashLimitPaise,
+        printGstOnCash,
         upiId,
         upiName,
         showUpiQr
@@ -858,6 +869,12 @@ class $AppSettingsTable extends AppSettings
           gstCashLimitPaise.isAcceptableOrUnknown(
               data['gst_cash_limit_paise']!, _gstCashLimitPaiseMeta));
     }
+    if (data.containsKey('print_gst_on_cash')) {
+      context.handle(
+          _printGstOnCashMeta,
+          printGstOnCash.isAcceptableOrUnknown(
+              data['print_gst_on_cash']!, _printGstOnCashMeta));
+    }
     if (data.containsKey('upi_id')) {
       context.handle(
           _upiIdMeta, upiId.isAcceptableOrUnknown(data['upi_id']!, _upiIdMeta));
@@ -911,6 +928,8 @@ class $AppSettingsTable extends AppSettings
           .read(DriftSqlType.string, data['${effectivePrefix}gst_number']),
       gstCashLimitPaise: attachedDatabase.typeMapping.read(
           DriftSqlType.int, data['${effectivePrefix}gst_cash_limit_paise'])!,
+      printGstOnCash: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}print_gst_on_cash'])!,
       upiId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}upi_id']),
       upiName: attachedDatabase.typeMapping
@@ -952,8 +971,13 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
   final String? gstNumber;
 
   /// Bills at or below this amount (in paise) print the GST number; bills
-  /// ABOVE it hide the GST number. Owner-editable. Default ₹10,000.
+  /// ABOVE it hide the GST number. Legacy — replaced by [printGstOnCash]; kept
+  /// so existing databases don't need a destructive migration.
   final int gstCashLimitPaise;
+
+  /// Whether to print the GST number on CASH bills. Off by default. UPI and
+  /// Cash+UPI bills always print the GST number (and the QR).
+  final bool printGstOnCash;
 
   /// The shop's UPI ID (VPA) for the payment QR, e.g. "name@okbizaxis".
   /// Default seeded on first run; nullable so the owner can clear it.
@@ -980,6 +1004,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       this.printerAddress,
       this.gstNumber,
       required this.gstCashLimitPaise,
+      required this.printGstOnCash,
       this.upiId,
       this.upiName,
       required this.showUpiQr});
@@ -1015,6 +1040,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       map['gst_number'] = Variable<String>(gstNumber);
     }
     map['gst_cash_limit_paise'] = Variable<int>(gstCashLimitPaise);
+    map['print_gst_on_cash'] = Variable<bool>(printGstOnCash);
     if (!nullToAbsent || upiId != null) {
       map['upi_id'] = Variable<String>(upiId);
     }
@@ -1055,6 +1081,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           ? const Value.absent()
           : Value(gstNumber),
       gstCashLimitPaise: Value(gstCashLimitPaise),
+      printGstOnCash: Value(printGstOnCash),
       upiId:
           upiId == null && nullToAbsent ? const Value.absent() : Value(upiId),
       upiName: upiName == null && nullToAbsent
@@ -1083,6 +1110,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       printerAddress: serializer.fromJson<String?>(json['printerAddress']),
       gstNumber: serializer.fromJson<String?>(json['gstNumber']),
       gstCashLimitPaise: serializer.fromJson<int>(json['gstCashLimitPaise']),
+      printGstOnCash: serializer.fromJson<bool>(json['printGstOnCash']),
       upiId: serializer.fromJson<String?>(json['upiId']),
       upiName: serializer.fromJson<String?>(json['upiName']),
       showUpiQr: serializer.fromJson<bool>(json['showUpiQr']),
@@ -1107,6 +1135,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       'printerAddress': serializer.toJson<String?>(printerAddress),
       'gstNumber': serializer.toJson<String?>(gstNumber),
       'gstCashLimitPaise': serializer.toJson<int>(gstCashLimitPaise),
+      'printGstOnCash': serializer.toJson<bool>(printGstOnCash),
       'upiId': serializer.toJson<String?>(upiId),
       'upiName': serializer.toJson<String?>(upiName),
       'showUpiQr': serializer.toJson<bool>(showUpiQr),
@@ -1129,6 +1158,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           Value<String?> printerAddress = const Value.absent(),
           Value<String?> gstNumber = const Value.absent(),
           int? gstCashLimitPaise,
+          bool? printGstOnCash,
           Value<String?> upiId = const Value.absent(),
           Value<String?> upiName = const Value.absent(),
           bool? showUpiQr}) =>
@@ -1149,6 +1179,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
             printerAddress.present ? printerAddress.value : this.printerAddress,
         gstNumber: gstNumber.present ? gstNumber.value : this.gstNumber,
         gstCashLimitPaise: gstCashLimitPaise ?? this.gstCashLimitPaise,
+        printGstOnCash: printGstOnCash ?? this.printGstOnCash,
         upiId: upiId.present ? upiId.value : this.upiId,
         upiName: upiName.present ? upiName.value : this.upiName,
         showUpiQr: showUpiQr ?? this.showUpiQr,
@@ -1178,6 +1209,9 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       gstCashLimitPaise: data.gstCashLimitPaise.present
           ? data.gstCashLimitPaise.value
           : this.gstCashLimitPaise,
+      printGstOnCash: data.printGstOnCash.present
+          ? data.printGstOnCash.value
+          : this.printGstOnCash,
       upiId: data.upiId.present ? data.upiId.value : this.upiId,
       upiName: data.upiName.present ? data.upiName.value : this.upiName,
       showUpiQr: data.showUpiQr.present ? data.showUpiQr.value : this.showUpiQr,
@@ -1202,6 +1236,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           ..write('printerAddress: $printerAddress, ')
           ..write('gstNumber: $gstNumber, ')
           ..write('gstCashLimitPaise: $gstCashLimitPaise, ')
+          ..write('printGstOnCash: $printGstOnCash, ')
           ..write('upiId: $upiId, ')
           ..write('upiName: $upiName, ')
           ..write('showUpiQr: $showUpiQr')
@@ -1226,6 +1261,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       printerAddress,
       gstNumber,
       gstCashLimitPaise,
+      printGstOnCash,
       upiId,
       upiName,
       showUpiQr);
@@ -1248,6 +1284,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           other.printerAddress == this.printerAddress &&
           other.gstNumber == this.gstNumber &&
           other.gstCashLimitPaise == this.gstCashLimitPaise &&
+          other.printGstOnCash == this.printGstOnCash &&
           other.upiId == this.upiId &&
           other.upiName == this.upiName &&
           other.showUpiQr == this.showUpiQr);
@@ -1269,6 +1306,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   final Value<String?> printerAddress;
   final Value<String?> gstNumber;
   final Value<int> gstCashLimitPaise;
+  final Value<bool> printGstOnCash;
   final Value<String?> upiId;
   final Value<String?> upiName;
   final Value<bool> showUpiQr;
@@ -1289,6 +1327,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.printerAddress = const Value.absent(),
     this.gstNumber = const Value.absent(),
     this.gstCashLimitPaise = const Value.absent(),
+    this.printGstOnCash = const Value.absent(),
     this.upiId = const Value.absent(),
     this.upiName = const Value.absent(),
     this.showUpiQr = const Value.absent(),
@@ -1310,6 +1349,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.printerAddress = const Value.absent(),
     this.gstNumber = const Value.absent(),
     this.gstCashLimitPaise = const Value.absent(),
+    this.printGstOnCash = const Value.absent(),
     this.upiId = const Value.absent(),
     this.upiName = const Value.absent(),
     this.showUpiQr = const Value.absent(),
@@ -1331,6 +1371,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Expression<String>? printerAddress,
     Expression<String>? gstNumber,
     Expression<int>? gstCashLimitPaise,
+    Expression<bool>? printGstOnCash,
     Expression<String>? upiId,
     Expression<String>? upiName,
     Expression<bool>? showUpiQr,
@@ -1352,6 +1393,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       if (printerAddress != null) 'printer_address': printerAddress,
       if (gstNumber != null) 'gst_number': gstNumber,
       if (gstCashLimitPaise != null) 'gst_cash_limit_paise': gstCashLimitPaise,
+      if (printGstOnCash != null) 'print_gst_on_cash': printGstOnCash,
       if (upiId != null) 'upi_id': upiId,
       if (upiName != null) 'upi_name': upiName,
       if (showUpiQr != null) 'show_upi_qr': showUpiQr,
@@ -1375,6 +1417,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       Value<String?>? printerAddress,
       Value<String?>? gstNumber,
       Value<int>? gstCashLimitPaise,
+      Value<bool>? printGstOnCash,
       Value<String?>? upiId,
       Value<String?>? upiName,
       Value<bool>? showUpiQr,
@@ -1395,6 +1438,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       printerAddress: printerAddress ?? this.printerAddress,
       gstNumber: gstNumber ?? this.gstNumber,
       gstCashLimitPaise: gstCashLimitPaise ?? this.gstCashLimitPaise,
+      printGstOnCash: printGstOnCash ?? this.printGstOnCash,
       upiId: upiId ?? this.upiId,
       upiName: upiName ?? this.upiName,
       showUpiQr: showUpiQr ?? this.showUpiQr,
@@ -1450,6 +1494,9 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     if (gstCashLimitPaise.present) {
       map['gst_cash_limit_paise'] = Variable<int>(gstCashLimitPaise.value);
     }
+    if (printGstOnCash.present) {
+      map['print_gst_on_cash'] = Variable<bool>(printGstOnCash.value);
+    }
     if (upiId.present) {
       map['upi_id'] = Variable<String>(upiId.value);
     }
@@ -1483,6 +1530,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
           ..write('printerAddress: $printerAddress, ')
           ..write('gstNumber: $gstNumber, ')
           ..write('gstCashLimitPaise: $gstCashLimitPaise, ')
+          ..write('printGstOnCash: $printGstOnCash, ')
           ..write('upiId: $upiId, ')
           ..write('upiName: $upiName, ')
           ..write('showUpiQr: $showUpiQr, ')
@@ -2673,6 +2721,18 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _cashPaidPaiseMeta =
+      const VerificationMeta('cashPaidPaise');
+  @override
+  late final GeneratedColumn<int> cashPaidPaise = GeneratedColumn<int>(
+      'cash_paid_paise', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _upiPaidPaiseMeta =
+      const VerificationMeta('upiPaidPaise');
+  @override
+  late final GeneratedColumn<int> upiPaidPaise = GeneratedColumn<int>(
+      'upi_paid_paise', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   @override
   late final GeneratedColumnWithTypeConverter<PaymentMethod, String>
       paymentMethod = GeneratedColumn<String>(
@@ -2709,6 +2769,8 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
         discountPaise,
         gstPaise,
         grandTotalPaise,
+        cashPaidPaise,
+        upiPaidPaise,
         paymentMethod,
         status,
         billedAt
@@ -2786,6 +2848,18 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
           grandTotalPaise.isAcceptableOrUnknown(
               data['grand_total_paise']!, _grandTotalPaiseMeta));
     }
+    if (data.containsKey('cash_paid_paise')) {
+      context.handle(
+          _cashPaidPaiseMeta,
+          cashPaidPaise.isAcceptableOrUnknown(
+              data['cash_paid_paise']!, _cashPaidPaiseMeta));
+    }
+    if (data.containsKey('upi_paid_paise')) {
+      context.handle(
+          _upiPaidPaiseMeta,
+          upiPaidPaise.isAcceptableOrUnknown(
+              data['upi_paid_paise']!, _upiPaidPaiseMeta));
+    }
     if (data.containsKey('billed_at')) {
       context.handle(_billedAtMeta,
           billedAt.isAcceptableOrUnknown(data['billed_at']!, _billedAtMeta));
@@ -2825,6 +2899,10 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
           .read(DriftSqlType.int, data['${effectivePrefix}gst_paise'])!,
       grandTotalPaise: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}grand_total_paise'])!,
+      cashPaidPaise: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}cash_paid_paise']),
+      upiPaidPaise: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}upi_paid_paise']),
       paymentMethod: $BillsTable.$converterpaymentMethod.fromSql(
           attachedDatabase.typeMapping.read(
               DriftSqlType.string, data['${effectivePrefix}payment_method'])!),
@@ -2861,6 +2939,11 @@ class Bill extends DataClass implements Insertable<Bill> {
   final int discountPaise;
   final int gstPaise;
   final int grandTotalPaise;
+
+  /// For split (Cash + UPI) payments: how much was paid in cash vs UPI. Null on
+  /// older bills; then the split is derived from [paymentMethod] at read time.
+  final int? cashPaidPaise;
+  final int? upiPaidPaise;
   final PaymentMethod paymentMethod;
   final BillStatus status;
   final DateTime billedAt;
@@ -2878,6 +2961,8 @@ class Bill extends DataClass implements Insertable<Bill> {
       required this.discountPaise,
       required this.gstPaise,
       required this.grandTotalPaise,
+      this.cashPaidPaise,
+      this.upiPaidPaise,
       required this.paymentMethod,
       required this.status,
       required this.billedAt});
@@ -2901,6 +2986,12 @@ class Bill extends DataClass implements Insertable<Bill> {
     map['discount_paise'] = Variable<int>(discountPaise);
     map['gst_paise'] = Variable<int>(gstPaise);
     map['grand_total_paise'] = Variable<int>(grandTotalPaise);
+    if (!nullToAbsent || cashPaidPaise != null) {
+      map['cash_paid_paise'] = Variable<int>(cashPaidPaise);
+    }
+    if (!nullToAbsent || upiPaidPaise != null) {
+      map['upi_paid_paise'] = Variable<int>(upiPaidPaise);
+    }
     {
       map['payment_method'] = Variable<String>(
           $BillsTable.$converterpaymentMethod.toSql(paymentMethod));
@@ -2932,6 +3023,12 @@ class Bill extends DataClass implements Insertable<Bill> {
       discountPaise: Value(discountPaise),
       gstPaise: Value(gstPaise),
       grandTotalPaise: Value(grandTotalPaise),
+      cashPaidPaise: cashPaidPaise == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cashPaidPaise),
+      upiPaidPaise: upiPaidPaise == null && nullToAbsent
+          ? const Value.absent()
+          : Value(upiPaidPaise),
       paymentMethod: Value(paymentMethod),
       status: Value(status),
       billedAt: Value(billedAt),
@@ -2955,6 +3052,8 @@ class Bill extends DataClass implements Insertable<Bill> {
       discountPaise: serializer.fromJson<int>(json['discountPaise']),
       gstPaise: serializer.fromJson<int>(json['gstPaise']),
       grandTotalPaise: serializer.fromJson<int>(json['grandTotalPaise']),
+      cashPaidPaise: serializer.fromJson<int?>(json['cashPaidPaise']),
+      upiPaidPaise: serializer.fromJson<int?>(json['upiPaidPaise']),
       paymentMethod: $BillsTable.$converterpaymentMethod
           .fromJson(serializer.fromJson<String>(json['paymentMethod'])),
       status: $BillsTable.$converterstatus
@@ -2979,6 +3078,8 @@ class Bill extends DataClass implements Insertable<Bill> {
       'discountPaise': serializer.toJson<int>(discountPaise),
       'gstPaise': serializer.toJson<int>(gstPaise),
       'grandTotalPaise': serializer.toJson<int>(grandTotalPaise),
+      'cashPaidPaise': serializer.toJson<int?>(cashPaidPaise),
+      'upiPaidPaise': serializer.toJson<int?>(upiPaidPaise),
       'paymentMethod': serializer.toJson<String>(
           $BillsTable.$converterpaymentMethod.toJson(paymentMethod)),
       'status': serializer
@@ -3001,6 +3102,8 @@ class Bill extends DataClass implements Insertable<Bill> {
           int? discountPaise,
           int? gstPaise,
           int? grandTotalPaise,
+          Value<int?> cashPaidPaise = const Value.absent(),
+          Value<int?> upiPaidPaise = const Value.absent(),
           PaymentMethod? paymentMethod,
           BillStatus? status,
           DateTime? billedAt}) =>
@@ -3018,6 +3121,10 @@ class Bill extends DataClass implements Insertable<Bill> {
         discountPaise: discountPaise ?? this.discountPaise,
         gstPaise: gstPaise ?? this.gstPaise,
         grandTotalPaise: grandTotalPaise ?? this.grandTotalPaise,
+        cashPaidPaise:
+            cashPaidPaise.present ? cashPaidPaise.value : this.cashPaidPaise,
+        upiPaidPaise:
+            upiPaidPaise.present ? upiPaidPaise.value : this.upiPaidPaise,
         paymentMethod: paymentMethod ?? this.paymentMethod,
         status: status ?? this.status,
         billedAt: billedAt ?? this.billedAt,
@@ -3044,6 +3151,12 @@ class Bill extends DataClass implements Insertable<Bill> {
       grandTotalPaise: data.grandTotalPaise.present
           ? data.grandTotalPaise.value
           : this.grandTotalPaise,
+      cashPaidPaise: data.cashPaidPaise.present
+          ? data.cashPaidPaise.value
+          : this.cashPaidPaise,
+      upiPaidPaise: data.upiPaidPaise.present
+          ? data.upiPaidPaise.value
+          : this.upiPaidPaise,
       paymentMethod: data.paymentMethod.present
           ? data.paymentMethod.value
           : this.paymentMethod,
@@ -3068,6 +3181,8 @@ class Bill extends DataClass implements Insertable<Bill> {
           ..write('discountPaise: $discountPaise, ')
           ..write('gstPaise: $gstPaise, ')
           ..write('grandTotalPaise: $grandTotalPaise, ')
+          ..write('cashPaidPaise: $cashPaidPaise, ')
+          ..write('upiPaidPaise: $upiPaidPaise, ')
           ..write('paymentMethod: $paymentMethod, ')
           ..write('status: $status, ')
           ..write('billedAt: $billedAt')
@@ -3090,6 +3205,8 @@ class Bill extends DataClass implements Insertable<Bill> {
       discountPaise,
       gstPaise,
       grandTotalPaise,
+      cashPaidPaise,
+      upiPaidPaise,
       paymentMethod,
       status,
       billedAt);
@@ -3110,6 +3227,8 @@ class Bill extends DataClass implements Insertable<Bill> {
           other.discountPaise == this.discountPaise &&
           other.gstPaise == this.gstPaise &&
           other.grandTotalPaise == this.grandTotalPaise &&
+          other.cashPaidPaise == this.cashPaidPaise &&
+          other.upiPaidPaise == this.upiPaidPaise &&
           other.paymentMethod == this.paymentMethod &&
           other.status == this.status &&
           other.billedAt == this.billedAt);
@@ -3129,6 +3248,8 @@ class BillsCompanion extends UpdateCompanion<Bill> {
   final Value<int> discountPaise;
   final Value<int> gstPaise;
   final Value<int> grandTotalPaise;
+  final Value<int?> cashPaidPaise;
+  final Value<int?> upiPaidPaise;
   final Value<PaymentMethod> paymentMethod;
   final Value<BillStatus> status;
   final Value<DateTime> billedAt;
@@ -3147,6 +3268,8 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.discountPaise = const Value.absent(),
     this.gstPaise = const Value.absent(),
     this.grandTotalPaise = const Value.absent(),
+    this.cashPaidPaise = const Value.absent(),
+    this.upiPaidPaise = const Value.absent(),
     this.paymentMethod = const Value.absent(),
     this.status = const Value.absent(),
     this.billedAt = const Value.absent(),
@@ -3166,6 +3289,8 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.discountPaise = const Value.absent(),
     this.gstPaise = const Value.absent(),
     this.grandTotalPaise = const Value.absent(),
+    this.cashPaidPaise = const Value.absent(),
+    this.upiPaidPaise = const Value.absent(),
     required PaymentMethod paymentMethod,
     this.status = const Value.absent(),
     this.billedAt = const Value.absent(),
@@ -3187,6 +3312,8 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Expression<int>? discountPaise,
     Expression<int>? gstPaise,
     Expression<int>? grandTotalPaise,
+    Expression<int>? cashPaidPaise,
+    Expression<int>? upiPaidPaise,
     Expression<String>? paymentMethod,
     Expression<String>? status,
     Expression<DateTime>? billedAt,
@@ -3206,6 +3333,8 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       if (discountPaise != null) 'discount_paise': discountPaise,
       if (gstPaise != null) 'gst_paise': gstPaise,
       if (grandTotalPaise != null) 'grand_total_paise': grandTotalPaise,
+      if (cashPaidPaise != null) 'cash_paid_paise': cashPaidPaise,
+      if (upiPaidPaise != null) 'upi_paid_paise': upiPaidPaise,
       if (paymentMethod != null) 'payment_method': paymentMethod,
       if (status != null) 'status': status,
       if (billedAt != null) 'billed_at': billedAt,
@@ -3227,6 +3356,8 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       Value<int>? discountPaise,
       Value<int>? gstPaise,
       Value<int>? grandTotalPaise,
+      Value<int?>? cashPaidPaise,
+      Value<int?>? upiPaidPaise,
       Value<PaymentMethod>? paymentMethod,
       Value<BillStatus>? status,
       Value<DateTime>? billedAt,
@@ -3245,6 +3376,8 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       discountPaise: discountPaise ?? this.discountPaise,
       gstPaise: gstPaise ?? this.gstPaise,
       grandTotalPaise: grandTotalPaise ?? this.grandTotalPaise,
+      cashPaidPaise: cashPaidPaise ?? this.cashPaidPaise,
+      upiPaidPaise: upiPaidPaise ?? this.upiPaidPaise,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       status: status ?? this.status,
       billedAt: billedAt ?? this.billedAt,
@@ -3294,6 +3427,12 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     if (grandTotalPaise.present) {
       map['grand_total_paise'] = Variable<int>(grandTotalPaise.value);
     }
+    if (cashPaidPaise.present) {
+      map['cash_paid_paise'] = Variable<int>(cashPaidPaise.value);
+    }
+    if (upiPaidPaise.present) {
+      map['upi_paid_paise'] = Variable<int>(upiPaidPaise.value);
+    }
     if (paymentMethod.present) {
       map['payment_method'] = Variable<String>(
           $BillsTable.$converterpaymentMethod.toSql(paymentMethod.value));
@@ -3327,6 +3466,8 @@ class BillsCompanion extends UpdateCompanion<Bill> {
           ..write('discountPaise: $discountPaise, ')
           ..write('gstPaise: $gstPaise, ')
           ..write('grandTotalPaise: $grandTotalPaise, ')
+          ..write('cashPaidPaise: $cashPaidPaise, ')
+          ..write('upiPaidPaise: $upiPaidPaise, ')
           ..write('paymentMethod: $paymentMethod, ')
           ..write('status: $status, ')
           ..write('billedAt: $billedAt, ')
@@ -5589,6 +5730,7 @@ typedef $$AppSettingsTableCreateCompanionBuilder = AppSettingsCompanion
   Value<String?> printerAddress,
   Value<String?> gstNumber,
   Value<int> gstCashLimitPaise,
+  Value<bool> printGstOnCash,
   Value<String?> upiId,
   Value<String?> upiName,
   Value<bool> showUpiQr,
@@ -5611,6 +5753,7 @@ typedef $$AppSettingsTableUpdateCompanionBuilder = AppSettingsCompanion
   Value<String?> printerAddress,
   Value<String?> gstNumber,
   Value<int> gstCashLimitPaise,
+  Value<bool> printGstOnCash,
   Value<String?> upiId,
   Value<String?> upiName,
   Value<bool> showUpiQr,
@@ -5671,6 +5814,10 @@ class $$AppSettingsTableFilterComposer
 
   ColumnFilters<int> get gstCashLimitPaise => $composableBuilder(
       column: $table.gstCashLimitPaise,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get printGstOnCash => $composableBuilder(
+      column: $table.printGstOnCash,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get upiId => $composableBuilder(
@@ -5740,6 +5887,10 @@ class $$AppSettingsTableOrderingComposer
       column: $table.gstCashLimitPaise,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get printGstOnCash => $composableBuilder(
+      column: $table.printGstOnCash,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get upiId => $composableBuilder(
       column: $table.upiId, builder: (column) => ColumnOrderings(column));
 
@@ -5804,6 +5955,9 @@ class $$AppSettingsTableAnnotationComposer
   GeneratedColumn<int> get gstCashLimitPaise => $composableBuilder(
       column: $table.gstCashLimitPaise, builder: (column) => column);
 
+  GeneratedColumn<bool> get printGstOnCash => $composableBuilder(
+      column: $table.printGstOnCash, builder: (column) => column);
+
   GeneratedColumn<String> get upiId =>
       $composableBuilder(column: $table.upiId, builder: (column) => column);
 
@@ -5852,6 +6006,7 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             Value<String?> printerAddress = const Value.absent(),
             Value<String?> gstNumber = const Value.absent(),
             Value<int> gstCashLimitPaise = const Value.absent(),
+            Value<bool> printGstOnCash = const Value.absent(),
             Value<String?> upiId = const Value.absent(),
             Value<String?> upiName = const Value.absent(),
             Value<bool> showUpiQr = const Value.absent(),
@@ -5873,6 +6028,7 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             printerAddress: printerAddress,
             gstNumber: gstNumber,
             gstCashLimitPaise: gstCashLimitPaise,
+            printGstOnCash: printGstOnCash,
             upiId: upiId,
             upiName: upiName,
             showUpiQr: showUpiQr,
@@ -5894,6 +6050,7 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             Value<String?> printerAddress = const Value.absent(),
             Value<String?> gstNumber = const Value.absent(),
             Value<int> gstCashLimitPaise = const Value.absent(),
+            Value<bool> printGstOnCash = const Value.absent(),
             Value<String?> upiId = const Value.absent(),
             Value<String?> upiName = const Value.absent(),
             Value<bool> showUpiQr = const Value.absent(),
@@ -5915,6 +6072,7 @@ class $$AppSettingsTableTableManager extends RootTableManager<
             printerAddress: printerAddress,
             gstNumber: gstNumber,
             gstCashLimitPaise: gstCashLimitPaise,
+            printGstOnCash: printGstOnCash,
             upiId: upiId,
             upiName: upiName,
             showUpiQr: showUpiQr,
@@ -6463,6 +6621,8 @@ typedef $$BillsTableCreateCompanionBuilder = BillsCompanion Function({
   Value<int> discountPaise,
   Value<int> gstPaise,
   Value<int> grandTotalPaise,
+  Value<int?> cashPaidPaise,
+  Value<int?> upiPaidPaise,
   required PaymentMethod paymentMethod,
   Value<BillStatus> status,
   Value<DateTime> billedAt,
@@ -6482,6 +6642,8 @@ typedef $$BillsTableUpdateCompanionBuilder = BillsCompanion Function({
   Value<int> discountPaise,
   Value<int> gstPaise,
   Value<int> grandTotalPaise,
+  Value<int?> cashPaidPaise,
+  Value<int?> upiPaidPaise,
   Value<PaymentMethod> paymentMethod,
   Value<BillStatus> status,
   Value<DateTime> billedAt,
@@ -6535,6 +6697,12 @@ class $$BillsTableFilterComposer extends Composer<_$AppDatabase, $BillsTable> {
   ColumnFilters<int> get grandTotalPaise => $composableBuilder(
       column: $table.grandTotalPaise,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get cashPaidPaise => $composableBuilder(
+      column: $table.cashPaidPaise, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get upiPaidPaise => $composableBuilder(
+      column: $table.upiPaidPaise, builder: (column) => ColumnFilters(column));
 
   ColumnWithTypeConverterFilters<PaymentMethod, PaymentMethod, String>
       get paymentMethod => $composableBuilder(
@@ -6601,6 +6769,14 @@ class $$BillsTableOrderingComposer
       column: $table.grandTotalPaise,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get cashPaidPaise => $composableBuilder(
+      column: $table.cashPaidPaise,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get upiPaidPaise => $composableBuilder(
+      column: $table.upiPaidPaise,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get paymentMethod => $composableBuilder(
       column: $table.paymentMethod,
       builder: (column) => ColumnOrderings(column));
@@ -6660,6 +6836,12 @@ class $$BillsTableAnnotationComposer
   GeneratedColumn<int> get grandTotalPaise => $composableBuilder(
       column: $table.grandTotalPaise, builder: (column) => column);
 
+  GeneratedColumn<int> get cashPaidPaise => $composableBuilder(
+      column: $table.cashPaidPaise, builder: (column) => column);
+
+  GeneratedColumn<int> get upiPaidPaise => $composableBuilder(
+      column: $table.upiPaidPaise, builder: (column) => column);
+
   GeneratedColumnWithTypeConverter<PaymentMethod, String> get paymentMethod =>
       $composableBuilder(
           column: $table.paymentMethod, builder: (column) => column);
@@ -6707,6 +6889,8 @@ class $$BillsTableTableManager extends RootTableManager<
             Value<int> discountPaise = const Value.absent(),
             Value<int> gstPaise = const Value.absent(),
             Value<int> grandTotalPaise = const Value.absent(),
+            Value<int?> cashPaidPaise = const Value.absent(),
+            Value<int?> upiPaidPaise = const Value.absent(),
             Value<PaymentMethod> paymentMethod = const Value.absent(),
             Value<BillStatus> status = const Value.absent(),
             Value<DateTime> billedAt = const Value.absent(),
@@ -6726,6 +6910,8 @@ class $$BillsTableTableManager extends RootTableManager<
             discountPaise: discountPaise,
             gstPaise: gstPaise,
             grandTotalPaise: grandTotalPaise,
+            cashPaidPaise: cashPaidPaise,
+            upiPaidPaise: upiPaidPaise,
             paymentMethod: paymentMethod,
             status: status,
             billedAt: billedAt,
@@ -6745,6 +6931,8 @@ class $$BillsTableTableManager extends RootTableManager<
             Value<int> discountPaise = const Value.absent(),
             Value<int> gstPaise = const Value.absent(),
             Value<int> grandTotalPaise = const Value.absent(),
+            Value<int?> cashPaidPaise = const Value.absent(),
+            Value<int?> upiPaidPaise = const Value.absent(),
             required PaymentMethod paymentMethod,
             Value<BillStatus> status = const Value.absent(),
             Value<DateTime> billedAt = const Value.absent(),
@@ -6764,6 +6952,8 @@ class $$BillsTableTableManager extends RootTableManager<
             discountPaise: discountPaise,
             gstPaise: gstPaise,
             grandTotalPaise: grandTotalPaise,
+            cashPaidPaise: cashPaidPaise,
+            upiPaidPaise: upiPaidPaise,
             paymentMethod: paymentMethod,
             status: status,
             billedAt: billedAt,

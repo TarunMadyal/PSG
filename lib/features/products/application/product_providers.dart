@@ -39,7 +39,15 @@ final catalogCategoriesProvider = Provider<List<String>>((ref) {
 final filteredCatalogProvider = Provider<List<ProductItem>>((ref) {
   final items = ref.watch(catalogProvider).valueOrNull ?? const [];
   final query = ref.watch(productSearchQueryProvider).trim().toLowerCase();
-  final category = ref.watch(selectedCategoryProvider);
+  final categories = ref.watch(catalogCategoriesProvider);
+  final selected = ref.watch(selectedCategoryProvider);
+  // Ignore a category filter that no longer matches any product (e.g. the
+  // category was renamed or all its products were removed) — otherwise the
+  // grid would be stuck empty with no obvious way back.
+  final category = (selected != null &&
+          categories.any((c) => c.toLowerCase() == selected.toLowerCase()))
+      ? selected
+      : null;
 
   return items.where((p) {
     if (category != null &&

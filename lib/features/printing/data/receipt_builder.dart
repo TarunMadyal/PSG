@@ -1,5 +1,6 @@
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 
+import '../../../core/enums.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/upi.dart';
 import '../../billing/domain/bill_receipt.dart';
@@ -91,23 +92,35 @@ class ReceiptBuilder {
     bytes.addAll(
       _total(g, 'TOTAL  Rs', receipt.grandTotal.formattedPlain, big: true),
     );
-    bytes.addAll(_kv(g, 'Paid via', _payLabel(receipt)));
+    bytes.addAll(_kv(g, 'Paid via', receipt.paymentMethod.label));
+
+    // ── Cash + UPI split breakdown ───────────────────────────────────
+    if (receipt.isSplit) {
+      bytes.addAll(_kv(g, 'Cash paid', receipt.cashPaid.formattedPlain));
+      bytes.addAll(_kv(g, 'UPI paid', receipt.upiPaid.formattedPlain));
+      bytes.addAll(_kv(g, 'Final total', receipt.grandTotal.formattedPlain));
+    }
 
     bytes.addAll(g.hr());
 
-    // ── GST number (hidden once the bill exceeds the cash limit) ──────
-    if (shop.shouldPrintGst(receipt.grandTotal)) {
+    // ── GST number ───────────────────────────────────────────────────
+    if (shop.shouldPrintGst(receipt.paymentMethod)) {
       bytes.addAll(g.text('GSTIN: ${shop.gstNumber!.trim()}', styles: _boldCenter));
       bytes.addAll(g.hr());
     }
 
-    // ── UPI payment QR (auto-fills the amount when scanned) ───────────
-    if (shop.shouldShowUpiQr(receipt.grandTotal)) {
-      bytes.addAll(g.text('Scan & Pay with any UPI app', styles: _boldCenter));
+    // ── UPI payment QR (auto-fills the UPI amount when scanned) ───────
+    if (shop.shouldShowUpiQr(receipt.paymentMethod, receipt.upiPaid)) {
+      bytes.addAll(
+        g.text(
+          'Scan & Pay ${receipt.upiPaid.formattedPlain} via UPI',
+          styles: _boldCenter,
+        ),
+      );
       final uri = buildUpiUri(
         vpa: shop.upiId!.trim(),
         payeeName: shop.upiPayeeName,
-        amount: receipt.grandTotal,
+        amount: receipt.upiPaid,
         note: receipt.invoiceNo,
       );
       bytes.addAll(g.qrcode(uri, size: QRSize.size6));
@@ -282,8 +295,4 @@ class ReceiptBuilder {
     ]);
   }
 
-  String _payLabel(BillReceipt r) {
-    final m = r.paymentMethod.name;
-    return m.isEmpty ? m : '${m[0].toUpperCase()}${m.substring(1)}';
-  }
 }

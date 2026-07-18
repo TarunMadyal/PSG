@@ -71,6 +71,10 @@ class _CatalogPane extends ConsumerWidget {
         const _SpecialActionsRow(),
         Expanded(
           child: catalog.when(
+            // Keep showing the last-loaded catalog during a reload or a
+            // transient stream error so the product grid never flashes blank.
+            skipLoadingOnReload: true,
+            skipError: true,
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('Could not load products: $e')),
             data: (_) => const _ProductGrid(),
