@@ -44,7 +44,10 @@ jobs:
         run: flutter test
 
       - name: Build release APK
-        run: flutter build apk --release
+        # Each build gets an increasing version code (the run number) so the
+        # app is always seen as an update, and it's signed with the committed
+        # keystore so it installs in place without a signature conflict.
+        run: flutter build apk --release --build-number=${{ github.run_number }}
 
       - name: Rename APK
         run: |

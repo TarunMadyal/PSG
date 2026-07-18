@@ -35,9 +35,9 @@ Thumbs.db
 android/.gradle/
 android/captures/
 android/local.properties
-android/key.properties
-*.keystore
-*.jks
+# Note: the release keystore (android/app/psg-release.jks) and key.properties
+# are intentionally committed for this sideloaded single-shop app so every
+# build shares one signature and updates install in place.
 
 # iOS
 ios/Pods/
