@@ -67,8 +67,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Create two passwords. The Admin password unlocks full access; '
-                  'the Staff password opens billing only.',
+                  'Create two passwords. The OWNER password unlocks full '
+                  'access; the owner password opens billing only.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -79,7 +79,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   controller: _admin,
                   obscureText: _obscure,
                   decoration: const InputDecoration(
-                    labelText: 'Admin password',
+                    labelText: 'OWNER password (full access)',
                     prefixIcon: Icon(Icons.admin_panel_settings_outlined),
                   ),
                 ),
@@ -88,7 +88,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   controller: _staff,
                   obscureText: _obscure,
                   decoration: InputDecoration(
-                    labelText: 'Staff password',
+                    labelText: 'owner password (billing only)',
                     prefixIcon: const Icon(Icons.badge_outlined),
                     suffixIcon: IconButton(
                       icon: Icon(

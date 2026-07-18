@@ -509,8 +509,8 @@ class _PasswordsSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Two passwords control access. The Admin password opens full access; '
-          'the Staff password opens billing only. The password entered at login '
+          'Two passwords control access. The OWNER password opens full access; '
+          'the owner password opens billing only. The password entered at login '
           'decides which opens.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
@@ -520,18 +520,18 @@ class _PasswordsSection extends ConsumerWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.admin_panel_settings_outlined),
-                title: const Text('Admin password'),
+                title: const Text('OWNER password'),
                 subtitle: const Text('Full access'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _change(context, ref, UserRole.owner, 'Admin'),
+                onTap: () => _change(context, ref, UserRole.owner, 'OWNER'),
               ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.badge_outlined),
-                title: const Text('Staff password'),
+                title: const Text('owner password'),
                 subtitle: const Text('Billing only'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _change(context, ref, UserRole.staff, 'Staff'),
+                onTap: () => _change(context, ref, UserRole.staff, 'owner'),
               ),
             ],
           ),

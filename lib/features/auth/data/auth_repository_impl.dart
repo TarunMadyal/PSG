@@ -24,8 +24,8 @@ class AuthRepositoryImpl implements AuthRepository {
   final PinHasher _hasher;
 
   static const int _minLength = 4;
-  static const String _adminName = 'Admin';
-  static const String _staffName = 'Staff';
+  static const String _adminName = 'OWNER';
+  static const String _staffName = 'owner';
 
   @override
   Future<bool> hasAnyUser() => _usersDao.hasAny();

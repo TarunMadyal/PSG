@@ -4,6 +4,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/money.dart';
 import '../../settings/domain/shop_profile.dart';
 import '../domain/report_filter.dart';
 import '../domain/report_models.dart';
@@ -23,7 +24,9 @@ Future<Uint8List> buildReportPdf(
   final doc = pw.Document();
   final s = data.sales;
 
-  String rs(dynamic v) => 'Rs ${v.formattedPlain}';
+  // Money is an extension type (an int at runtime), so this must be statically
+  // typed as Money — a `dynamic` call would fail to find `formattedPlain`.
+  String rs(Money v) => 'Rs ${v.formattedPlain}';
   final title = filter == GstFilter.all
       ? '${range.label} Sales Report'
       : '${range.label} Sales Report (${filter.label})';
