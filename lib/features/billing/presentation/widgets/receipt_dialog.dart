@@ -10,7 +10,6 @@ import '../../../printing/application/printing_providers.dart';
 import '../../../settings/application/settings_providers.dart';
 import '../../../settings/domain/shop_profile.dart';
 import '../../../../shared/widgets/app_logo.dart';
-import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../domain/bill_receipt.dart';
 
 /// Shows a post-sale confirmation laid out like the printed bill — logo + shop
@@ -41,12 +40,6 @@ class _ReceiptViewState extends ConsumerState<_ReceiptView> {
   bool _printing = false;
 
   Future<void> _print(ShopProfile shop) async {
-    final ok = await confirmDialog(
-      context,
-      title: 'Print bill?',
-      message: 'Print this bill to the printer?',
-    );
-    if (!ok) return;
     setState(() => _printing = true);
     final result =
         await ref.read(printerServiceProvider).printReceipt(widget.receipt, shop);
