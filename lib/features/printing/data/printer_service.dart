@@ -56,6 +56,7 @@ class PrinterService {
     ReportRange range,
     ShopProfile shop, {
     GstFilter filter = GstFilter.all,
+    DateTime? date,
   }) {
     return _printBytes(
       shop,
@@ -65,6 +66,7 @@ class PrinterService {
         shop,
         DateTime.now(),
         filter: filter,
+        reportDate: date,
       ),
     );
   }

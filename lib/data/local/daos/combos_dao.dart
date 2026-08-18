@@ -27,6 +27,36 @@ class CombosDao extends DatabaseAccessor<AppDatabase> with _$CombosDaoMixin {
       (update(comboPants)..where((t) => t.id.equals(id)))
           .write(ComboPantsCompanion(pricePaise: Value(pricePaise)));
 
+  Future<void> addShirt(String name, int pricePaise) async {
+    final last = await (select(comboShirts)
+          ..orderBy([(t) => OrderingTerm.desc(t.sortOrder)])
+          ..limit(1))
+        .getSingleOrNull();
+    final maxOrder = last?.sortOrder ?? 0;
+    await into(comboShirts).insert(
+      ComboShirtsCompanion.insert(
+        name: name.trim(),
+        pricePaise: Value(pricePaise),
+        sortOrder: Value(maxOrder + 1),
+      ),
+    );
+  }
+
+  Future<void> addPant(String name, int pricePaise) async {
+    final last = await (select(comboPants)
+          ..orderBy([(t) => OrderingTerm.desc(t.sortOrder)])
+          ..limit(1))
+        .getSingleOrNull();
+    final maxOrder = last?.sortOrder ?? 0;
+    await into(comboPants).insert(
+      ComboPantsCompanion.insert(
+        name: name.trim(),
+        pricePaise: Value(pricePaise),
+        sortOrder: Value(maxOrder + 1),
+      ),
+    );
+  }
+
   Future<int> totalShirts() =>
       comboShirts.count().getSingle();
 

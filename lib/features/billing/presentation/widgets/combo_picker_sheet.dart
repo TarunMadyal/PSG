@@ -31,6 +31,57 @@ class _ComboPickerSheetState extends ConsumerState<_ComboPickerSheet> {
   ComboShirt? _shirt;
   ComboPant? _pant;
 
+  Future<String?> _promptItemName(String type) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Add combo $type'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'Item name'),
+          onSubmitted: (value) {
+            if (value.trim().isNotEmpty) {
+              Navigator.of(dialogContext).pop(value.trim());
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                Navigator.of(dialogContext).pop(controller.text.trim());
+              }
+            },
+            child: const Text('Next'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return name;
+  }
+
+  Future<void> _addComboItem({required bool shirt}) async {
+    final type = shirt ? 'shirt' : 'pant';
+    final name = await _promptItemName(type);
+    if (name == null || !mounted) return;
+    final price = await promptAmount(context, title: 'Price — $name');
+    if (price == null) return;
+    final dao = ref.read(databaseProvider).combosDao;
+    if (shirt) {
+      await dao.addShirt(name, price.paise);
+    } else {
+      await dao.addPant(name, price.paise);
+    }
+  }
+
   Future<void> _editShirtPrice(ComboShirt shirt) async {
     final value = await promptAmount(
       context,
@@ -108,12 +159,24 @@ class _ComboPickerSheetState extends ConsumerState<_ComboPickerSheet> {
                 AppSpacing.xl,
               ),
               children: [
-                Text(
-                  'Select a Shirt',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF6A0DAD),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Select a Shirt',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF6A0DAD),
+                            ),
                       ),
+                    ),
+                    if (canEdit)
+                      TextButton.icon(
+                        onPressed: () => _addComboItem(shirt: true),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add shirt'),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 shirts.when(
@@ -154,12 +217,25 @@ class _ComboPickerSheetState extends ConsumerState<_ComboPickerSheet> {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Select a Pant',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF005B96),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Select a Pant',
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF005B96),
+                                  ),
                         ),
+                      ),
+                      if (canEdit)
+                        TextButton.icon(
+                          onPressed: () => _addComboItem(shirt: false),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add pant'),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   pants.when(

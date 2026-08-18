@@ -22,7 +22,13 @@ void main() {
   test('week is no longer a report range', () {
     expect(
       ReportRange.values.map((r) => r.name),
-      ['today', 'month', 'quarter', 'year'],
+      ['today', 'custom', 'month', 'quarter', 'year'],
     );
+  });
+
+  test('custom range covers only the chosen local calendar day', () {
+    final (from, to) = ReportRange.custom.bounds(DateTime(2026, 8, 12, 17));
+    expect(from, DateTime(2026, 8, 12).toUtc());
+    expect(to, DateTime(2026, 8, 13).toUtc());
   });
 }

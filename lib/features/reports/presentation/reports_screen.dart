@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/file_share.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../printing/application/printing_providers.dart';
 import '../../settings/application/settings_providers.dart';
@@ -22,6 +23,7 @@ class ReportsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final range = ref.watch(selectedRangeProvider);
+    final reportDate = ref.watch(selectedReportDateProvider);
     final gstFilter = ref.watch(selectedGstFilterProvider);
     final dashboard = ref.watch(reportDashboardProvider);
 
@@ -42,7 +44,11 @@ class ReportsScreen extends ConsumerWidget {
                   heroTag: 'reportPrint',
                   onPressed: () => _printReport(context, ref),
                   icon: const Icon(Icons.print_outlined),
-                  label: Text('Print ${range.label.toLowerCase()} report'),
+                  label: Text(
+                    range == ReportRange.custom
+                        ? 'Print ${Formatters.date(reportDate)} report'
+                        : 'Print ${range.label.toLowerCase()} report',
+                  ),
                 ),
               ],
             )
@@ -65,11 +71,49 @@ class ReportsScreen extends ConsumerWidget {
                 ],
                 selected: {range},
                 showSelectedIcon: false,
-                onSelectionChanged: (s) =>
-                    ref.read(selectedRangeProvider.notifier).state = s.first,
+                onSelectionChanged: (s) async {
+                  final selected = s.first;
+                  if (selected == ReportRange.custom) {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: reportDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked == null) return;
+                    ref.read(selectedReportDateProvider.notifier).state = picked;
+                  }
+                  ref.read(selectedRangeProvider.notifier).state = selected;
+                },
               ),
             ),
           ),
+          if (range == ReportRange.custom)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.md,
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.calendar_today_outlined),
+                title: const Text('Report date'),
+                subtitle: Text(Formatters.date(reportDate)),
+                trailing: const Icon(Icons.edit_calendar_outlined),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: reportDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    ref.read(selectedReportDateProvider.notifier).state = picked;
+                  }
+                },
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg,
@@ -102,6 +146,7 @@ class ReportsScreen extends ConsumerWidget {
 
   Future<void> _printReport(BuildContext context, WidgetRef ref) async {
     final range = ref.read(selectedRangeProvider);
+    final reportDate = ref.read(selectedReportDateProvider);
     final data = ref.read(reportDashboardProvider).valueOrNull;
     final messenger = ScaffoldMessenger.of(context);
     if (data == null) {
@@ -114,14 +159,15 @@ class ReportsScreen extends ConsumerWidget {
     final ok = await confirmDialog(
       context,
       title: 'Print report?',
-      message: 'Print the ${range.label.toLowerCase()} report '
+      message: 'Print the '
+          '${range == ReportRange.custom ? Formatters.date(reportDate) : range.label.toLowerCase()} report '
           '(${filter.label.toLowerCase()}) to the printer?',
     );
     if (!ok) return;
     final shop = await ref.read(settingsRepositoryProvider).get();
     final result = await ref
         .read(printerServiceProvider)
-        .printReport(data, range, shop, filter: filter);
+        .printReport(data, range, shop, filter: filter, date: reportDate);
     result.fold(
       (_) => messenger.showSnackBar(
         const SnackBar(content: Text('Report sent to printer.')),
@@ -134,6 +180,7 @@ class ReportsScreen extends ConsumerWidget {
 
   Future<void> _downloadPdf(BuildContext context, WidgetRef ref) async {
     final range = ref.read(selectedRangeProvider);
+    final reportDate = ref.read(selectedReportDateProvider);
     final data = ref.read(reportDashboardProvider).valueOrNull;
     final messenger = ScaffoldMessenger.of(context);
     if (data == null) {
@@ -147,13 +194,14 @@ class ReportsScreen extends ConsumerWidget {
       final shop = await ref.read(settingsRepositoryProvider).get();
       final bills = await ref
           .read(reportRepositoryProvider)
-          .billsInRange(range, filter: filter);
+          .billsInRange(range, filter: filter, date: reportDate);
       final bytes = await buildReportPdf(
         data,
         range,
         shop,
         DateTime.now(),
         bills: bills,
+        reportDate: reportDate,
       );
       final stamp = range.label.toLowerCase().replaceAll(' ', '-');
       await shareBytes(

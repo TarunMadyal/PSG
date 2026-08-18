@@ -17,6 +17,11 @@ final selectedRangeProvider = StateProvider<ReportRange>(
   (ref) => ReportRange.today,
 );
 
+/// Date used when the owner selects the custom single-day report.
+final selectedReportDateProvider = StateProvider<DateTime>(
+  (ref) => DateTime.now(),
+);
+
 /// The GST scope currently selected on the Reports screen.
 final selectedGstFilterProvider = StateProvider<GstFilter>(
   (ref) => GstFilter.all,
@@ -27,5 +32,8 @@ final selectedGstFilterProvider = StateProvider<GstFilter>(
 final reportDashboardProvider = FutureProvider<ReportDashboard>((ref) {
   final range = ref.watch(selectedRangeProvider);
   final filter = ref.watch(selectedGstFilterProvider);
-  return ref.watch(reportRepositoryProvider).dashboard(range, filter: filter);
+  final date = ref.watch(selectedReportDateProvider);
+  return ref
+      .watch(reportRepositoryProvider)
+      .dashboard(range, filter: filter, date: date);
 });
