@@ -21,6 +21,7 @@ Future<Uint8List> buildReportPdf(
   ShopProfile shop,
   DateTime generatedAt, {
   required List<ReportBillRow> bills,
+  DateTime? reportDate,
 }) async {
   final doc = pw.Document();
   final s = data.sales;
@@ -53,7 +54,7 @@ Future<Uint8List> buildReportPdf(
         pw.Divider(),
         pw.SizedBox(height: 8),
         pw.Text(
-          '${range.label} Sales Report',
+          '${range == ReportRange.custom && reportDate != null ? Formatters.date(reportDate) : range.label} Sales Report',
           style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
         ),
         pw.Text('Generated ${Formatters.dateTime(generatedAt)}'),

@@ -15,8 +15,9 @@ class ReportRepositoryImpl implements ReportRepository {
   Future<SalesSummary> salesSummary(
     ReportRange range, {
     GstFilter filter = GstFilter.all,
+    DateTime? date,
   }) async {
-    final (from, to) = range.bounds();
+    final (from, to) = range.bounds(date);
     final isGst = filter.isGstValue;
     final agg = await _dao.salesSummary(from, to, isGst: isGst);
     final items = await _dao.itemsSold(from, to, isGst: isGst);
@@ -33,8 +34,9 @@ class ReportRepositoryImpl implements ReportRepository {
     ReportRange range, {
     int limit = 10,
     GstFilter filter = GstFilter.all,
+    DateTime? date,
   }) async {
-    final (from, to) = range.bounds();
+    final (from, to) = range.bounds(date);
     final rows =
         await _dao.bestSellers(from, to, limit: limit, isGst: filter.isGstValue);
     return rows
@@ -52,8 +54,9 @@ class ReportRepositoryImpl implements ReportRepository {
   Future<List<ReportBillRow>> billsInRange(
     ReportRange range, {
     GstFilter filter = GstFilter.all,
+    DateTime? date,
   }) async {
-    final (from, to) = range.bounds();
+    final (from, to) = range.bounds(date);
     final rows = await _dao.billsInRange(from, to, isGst: filter.isGstValue);
     return rows
         .map(
@@ -72,9 +75,10 @@ class ReportRepositoryImpl implements ReportRepository {
   Future<ReportDashboard> dashboard(
     ReportRange range, {
     GstFilter filter = GstFilter.all,
+    DateTime? date,
   }) async {
-    final sales = await salesSummary(range, filter: filter);
-    final best = await bestSellers(range, filter: filter);
+    final sales = await salesSummary(range, filter: filter, date: date);
+    final best = await bestSellers(range, filter: filter, date: date);
     return ReportDashboard(sales: sales, bestSellers: best);
   }
 }

@@ -59,19 +59,19 @@ class ReceiptBuilder {
     // ── Items table ────────────────────────────────────────────────
     bytes.addAll(
       g.row([
-        PosColumn(text: 'Item', width: 6, styles: _boldLeft),
+        PosColumn(text: 'Item', width: 4, styles: _boldLeft),
         PosColumn(text: 'Qty', width: 2, styles: _boldCenter),
-        PosColumn(text: 'Rate', width: 2, styles: _boldRight),
-        PosColumn(text: 'Amt', width: 2, styles: _boldRight),
+        PosColumn(text: 'Rate', width: 3, styles: _boldRight),
+        PosColumn(text: 'Amt', width: 3, styles: _boldRight),
       ]),
     );
     for (final l in receipt.lines) {
       bytes.addAll(
         g.row([
-          PosColumn(text: l.name, width: 6),
+          PosColumn(text: l.name, width: 4),
           PosColumn(text: '${l.qty}', width: 2, styles: _center),
-          PosColumn(text: l.unitPrice.formattedPlain, width: 2, styles: _right),
-          PosColumn(text: l.amount.formattedPlain, width: 2, styles: _right),
+          PosColumn(text: l.unitPrice.formattedPlain, width: 3, styles: _right),
+          PosColumn(text: l.amount.formattedPlain, width: 3, styles: _right),
         ]),
       );
       if (!l.discount.isZero) {
@@ -179,14 +179,18 @@ class ReceiptBuilder {
     ShopProfile shop,
     DateTime generatedAt, {
     GstFilter filter = GstFilter.all,
+    DateTime? reportDate,
   }) async {
     final profile = await CapabilityProfile.load();
     final paper = shop.receiptWidth == 58 ? PaperSize.mm58 : PaperSize.mm80;
     final g = Generator(paper, profile);
 
+    final rangeTitle = range == ReportRange.custom && reportDate != null
+        ? Formatters.date(reportDate)
+        : range.label;
     final title = filter == GstFilter.all
-        ? '${range.label} sales report'
-        : '${range.label} report (${filter.label})';
+        ? '$rangeTitle sales report'
+        : '$rangeTitle report (${filter.label})';
 
     final bytes = <int>[];
     bytes.addAll(g.reset());
